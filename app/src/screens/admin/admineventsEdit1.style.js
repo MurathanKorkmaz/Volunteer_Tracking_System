@@ -1,0 +1,147 @@
+import { StyleSheet } from "react-native";
+
+export default StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    background: {
+        flex: 1,
+    },
+    fixedHeader: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: "rgba(255, 255, 255, 0.9)",
+        paddingVertical: 20,
+        alignItems: "center",
+        zIndex: 1000,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        elevation: 5,
+    },
+    backButton: {
+        position: "absolute",
+        top: 70,
+        left: 23,
+        zIndex: 10,
+    },
+    backIcon: {
+        fontSize: 48,
+        color: "#000",
+        fontWeight: "200",
+    },
+    headerText: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "#333",
+    },
+    scrollableContent: {
+        flex: 1,
+        marginTop: 140, // Header'ın altına yer açar
+    },
+    scrollContainer: {
+        flexGrow: 1,
+        paddingBottom: 30,
+    },
+    inputContainer: {
+        marginHorizontal: 20,
+        padding: 20,
+        backgroundColor: "#FFF",
+        borderRadius: 10,
+        elevation: 3,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    label: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#333",
+        marginBottom: 10,
+    },
+    input: {
+        height: 50,
+        backgroundColor: "#F7F7F7",
+        borderRadius: 10,
+        paddingHorizontal: 15,
+        marginBottom: 20,
+        fontSize: 16,
+        color: "#333",
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    dateInput: {
+        height: 50,
+        backgroundColor: "#F7F7F7",
+        borderRadius: 10,
+        paddingHorizontal: 15,
+        justifyContent: "center",
+        marginBottom: 20,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    dateText: {
+        fontSize: 16,
+        color: "#333",
+    },
+    textArea: {
+        height: 100,
+        backgroundColor: "#F7F7F7",
+        borderRadius: 10,
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        fontSize: 16,
+        color: "#333",
+        textAlignVertical: "top",
+    },
+    saveButton: {
+        marginHorizontal: 20,
+        paddingVertical: 15,
+        borderRadius: 10,
+        backgroundColor: "#4CAF50",
+        alignItems: "center",
+        marginTop: 20,
+        marginBottom: 10,
+    },
+    saveButtonText: {
+        fontSize: 18,
+        fontWeight: "bold",
+        color: "#FFF",
+    },
+
+    /** Etkinlik Türü ve Yayın Türü İçin Stiller **/
+    dropdownContainer: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        justifyContent: "space-between",
+        marginBottom: 20,
+    },
+    dropdownItem: {
+        width: "48%",
+        paddingVertical: 10,
+        borderWidth: 2,
+        borderColor: "#FFD700",
+        borderRadius: 5,
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    dropdownItemSelected: {
+        backgroundColor: "#FFD700",
+    },
+    dropdownText: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#FFD700",
+    },
+    dropdownTextSelected: {
+        color: "#FFF",
+    },
+});
