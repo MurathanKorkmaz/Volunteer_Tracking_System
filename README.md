@@ -33,28 +33,28 @@
 ## 📸 Uygulama Görselleri
 
 ### 🔐 Giriş Ekranı
-![Login Page](screenshots/login_page.png)
+![Login Page](screenshotss/login_pagee.png)
 
 ---
 
 ### 🏠 Ana Sayfa
-![Main Page](screenshots/main_page.png)
+![Main Page](screenshotss/main_pagee.png)
 
 ---
 
 ### 🛠️ Admin Paneli
-![Panel Page](screenshots/panel_page.png)
+![Panel Page](screenshotss/panel_pagee.png)
 
 ---
 
 ### 🌟 Özellikler
-![Feature 1](screenshots/feature_1.png)
-![Feature 2](screenshots/feature_2.png)
+![Feature 1](screenshotss/feature_11.png)
+![Feature 2](screenshotss/feature_22.png)
 
 ---
 
 ### 🙏 Teşekkürler
-![Thanks](screenshots/thanks.png)
+![Thanks](screenshotss/thankss.png)
 
 ---
 
