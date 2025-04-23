@@ -112,48 +112,54 @@ export default function adminEvents() {
 
     const handleDeleteEvent = async (eventId) => {
         try {
-            // Kullanıcının seçtiği tarihi al
-            const selectedYear = selectedDate.getFullYear().toString();
-            const selectedMonth = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
-    
-            // Silinecek etkinliğin verisini al
-            const eventDocRef = doc(db, "events", selectedYear, selectedMonth, eventId);
-            const eventDocSnap = await getDoc(eventDocRef);
-    
-            if (!eventDocSnap.exists()) {
-                Alert.alert("Hata", "Silinecek etkinlik bulunamadı!");
-                return;
+          const selectedYear = selectedDate.getFullYear().toString();
+          const selectedMonth = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
+      
+          const eventDocRef = doc(db, "events", selectedYear, selectedMonth, eventId);
+          const eventDocSnap = await getDoc(eventDocRef);
+      
+          if (!eventDocSnap.exists()) {
+            Alert.alert("Hata", "Silinecek etkinlik bulunamadı!");
+            return;
+          }
+      
+          const eventData = eventDocSnap.data();
+      
+          // 1. pastEvents'e yedekle
+          const pastEventRef = doc(db, "pastEvents", selectedYear, selectedMonth, eventId);
+          const pastEventSnap = await getDoc(pastEventRef);
+      
+          if (pastEventSnap.exists()) {
+            await updateDoc(pastEventRef, eventData);
+          } else {
+            await setDoc(pastEventRef, eventData);
+          }
+      
+          // 2. Alt koleksiyonlardaki belgeleri sil
+          const subCollections = ["Particant", "NonParticant"];
+      
+          for (const subColName of subCollections) {
+            const subColRef = collection(db, "events", selectedYear, selectedMonth, eventId, subColName);
+            const subDocsSnap = await getDocs(subColRef);
+      
+            for (const subDoc of subDocsSnap.docs) {
+              await deleteDoc(subDoc.ref);
             }
-    
-            const eventData = eventDocSnap.data(); // Etkinlik verisini al
-    
-            // `pastEvents` koleksiyonundaki aynı ID'ye sahip belgeyi kontrol et
-            const pastEventRef = doc(db, "pastEvents", selectedYear, selectedMonth, eventId);
-            const pastEventSnap = await getDoc(pastEventRef);
-    
-            if (pastEventSnap.exists()) {
-                // Eğer belge varsa, `updateDoc` ile güncelle
-                await updateDoc(pastEventRef, eventData);
-            } else {
-                // Eğer belge yoksa, `setDoc` ile yeni belge oluştur
-                await setDoc(pastEventRef, eventData);
-            }
-    
-            // `events` koleksiyonundan bu etkinliği sil
-            await deleteDoc(eventDocRef);
-    
-            Alert.alert("Başarılı", "Etkinlik silindi ve geçmiş etkinliklere güncellendi.");
-    
-            // UI'daki listeyi güncelle
-            setEvents(events.filter((event) => event.id !== eventId));
-            setFilteredEvents(filteredEvents.filter((event) => event.id !== eventId));
-    
+          }
+      
+          // 3. Ana belgeyi sil
+          await deleteDoc(eventDocRef);
+      
+          Alert.alert("Başarılı", "Etkinlik ve alt koleksiyonları silindi.");
+      
+          // 4. UI'dan kaldır
+          setEvents(events.filter((event) => event.id !== eventId));
+          setFilteredEvents(filteredEvents.filter((event) => event.id !== eventId));
         } catch (error) {
-            console.error("Etkinlik silinirken hata oluştu:", error);
-            Alert.alert("Hata", "Etkinlik silinirken bir hata oluştu.");
+          console.error("Etkinlik silinirken hata oluştu:", error);
+          Alert.alert("Hata", "Etkinlik silinirken bir hata oluştu.");
         }
-    };
-    
+      };
     
 
     return (

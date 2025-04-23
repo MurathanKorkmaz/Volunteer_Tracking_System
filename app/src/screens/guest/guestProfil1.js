@@ -23,9 +23,6 @@ export default function GuestProfil1() {
     const [phone, setPhone] = useState("");
     const [ratingCounter, setRatingCounter] = useState(0);
     const [participationRate, setParticipationRate] = useState(0);
-    const [participationPoints, setParticipationPoints] = useState(0);
-    const participationScore = Math.min(participationPoints, 200); // 200'ü aşamaz
-    const progress = participationScore / 200; // 200 üzerinden yüzdelik oran
     const [modalVisible, setModalVisible] = useState(false);
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -45,7 +42,6 @@ export default function GuestProfil1() {
                     setEmail(userData.email || "E-posta Yok");
                     setPhone(userData.phoneNumber || "Telefon Yok");
                     setParticipationRate(userData.turnout ? parseInt(userData.turnout) : 0);
-                    setParticipationPoints(userData.rating ? parseInt(userData.rating) : 0);
                     setRatingCounter(userData.ratingCounter ? parseInt(userData.ratingCounter) : 0); // Katılım Sayısını Al
                 } else {
                     console.log("Kullanıcı bulunamadı");
@@ -157,7 +153,6 @@ export default function GuestProfil1() {
                 {/* Dairesel Grafikler */}
                 <View style={styles.graphsContainer}>
                     {renderCircularGraph(participationRate, "#1E90FF", "Katılım Oranı")}
-                    {renderCircularGraph(progress * 100, "#32CD32", "Katılım Puanı", true)}
                 </View>
 
                 {/* Katılım Sayısı */}

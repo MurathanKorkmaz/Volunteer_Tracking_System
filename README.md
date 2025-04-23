@@ -1,50 +1,69 @@
-# Welcome to your Expo app 👋
+# 🤝 Gönüllü Takip Mobil Uygulaması
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Gönüllü Takip Mobil Uygulaması**, hem **Admin** hem de **Gönüllü (Guest)** kullanıcılar için tasarlanmış, çok panelli bir yönetim sistemine sahip kapsamlı bir mobil uygulamadır. Tek bir uygulama üzerinden yetkilerine göre farklı panellere erişim imkanı sağlar.
 
-## Get started
+---
 
-1. Install dependencies
+## 🚀 Özellikler
 
-   ```bash
-   npm install
-   ```
+- **Çift Panel Erişimi:**  
+  - **Admin Panel:** Yetkili kullanıcılar, tüm yönetim araçlarına erişebilir.  
+  - **Gönüllü Panel (Guest):** Onaylı gönüllüler, kendilerine özel panele giriş yapabilir.
+  
+- **Kullanıcı Yönetimi:**  
+  Kayıtlı kullanıcıları listeleme, düzenleme ve yetkilendirme.
 
-2. Start the app
+- **Etkinlik Yönetimi:**  
+  Etkinlik oluşturma, düzenleme ve gönüllülere atama.
 
-   ```bash
-    npx expo start
-   ```
+- **Kişi Takip Yönetimi:**  
+  Gönüllülerin takip ettiği kişileri ve görevleri yönetme.
 
-In the output, you'll find options to open the app in a
+- **Duyuru Yönetimi:**  
+  Admin tarafından gönüllülere özel duyuruların yayınlanması.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **Erişim Yönetimi:**  
+  Kullanıcı yetkilerini belirleme ve panel erişim kontrolü.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **Modern ve Kullanıcı Dostu Arayüz:**  
+  Basit, anlaşılır ve şık tasarım.
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## 📸 Uygulama Görselleri
+
+### 🔐 Giriş Ekranı
+![Login Page](screenshots/login_page.png)
+
+---
+
+### 🏠 Ana Sayfa
+![Main Page](screenshots/main_page.png)
+
+---
+
+### 🛠️ Admin Paneli
+![Panel Page](screenshots/panel_page.png)
+
+---
+
+### 🌟 Özellikler
+![Feature 1](screenshots/feature_1.png)
+![Feature 2](screenshots/feature_2.png)
+
+---
+
+### 🙏 Teşekkürler
+![Thanks](screenshots/thanks.png)
+
+---
+
+## ⚙️ Kurulum
+
+Projeyi kendi bilgisayarınızda çalıştırmak için aşağıdaki adımları izleyin:
 
 ```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+git clone https://github.com/kullaniciadi/gonullu-takip-mobil-uygulamasi.git
+cd gonullu-takip-mobil-uygulamasi
+npm install
+npm start

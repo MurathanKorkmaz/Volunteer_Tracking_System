@@ -3,19 +3,23 @@ import { StyleSheet } from "react-native";
 export default StyleSheet.create({
     container: {
         flex: 1,
-        alignItems: "center",
-        padding: 20,
+        paddingHorizontal: 24, // sağ-sol boşluk
+        paddingVertical: 16,
+        backgroundColor: "#fff", // varsa gradient’in altına
+        alignItems: "stretch",   // ❗ Bu sayede child'lar genişler
     },
     header: {
-        width: "110.5%", // Tam ekran genişliği
+        position: "absolute",      // Ekranın üstüne sabitle
+        top: 0,
+        left: 0,
+        right: 0,                  // ❗ Bu üçüyle tam ekran genişliği alırsın
+        zIndex: 1,                 // Diğer şeylerin üstünde dursun
         alignItems: "center",
         paddingVertical: 20,
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        marginBottom: 20,
-        marginTop: -20
-    },
+      },
     headerText: {
         fontSize: 24,
         fontWeight: "bold",
@@ -49,10 +53,10 @@ export default StyleSheet.create({
     },
     graphsContainer: {
         flexDirection: "row",
-        justifyContent: "space-between",
-        marginTop: 70,
+        justifyContent: "center",
+        marginTop: 130,
         marginVertical: 20,
-        width: "90%",
+        width: "100%",
     },
     circularGraphContainer: {
         alignItems: "center",
@@ -71,30 +75,37 @@ export default StyleSheet.create({
         fontWeight: "bold",
     },
     infoContainer: {
-        width: "100%",
+        width: "100%", // kalabilir
         marginTop: 30,
+        paddingHorizontal: 16, // ekle
     },
     label: {
         fontSize: 16,
         fontWeight: "bold",
         marginBottom: 5,
         color: "#333",
+        textAlign: "left", // ❗ sola hizalı
+        width: "100%",     // ❗ tüm satırı kaplasın
     },
     input: {
-        width: "100%",
+        width: "100%", // kalabilir ama emin olalım
+        maxWidth: "100%", // taşma olmasın
         height: 45,
         borderColor: "#ccc",
         borderWidth: 1,
         borderRadius: 8,
-        paddingHorizontal: 10,
+        paddingHorizontal: 12,
         marginBottom: 15,
         backgroundColor: "#FFF",
         fontSize: 14,
+        alignSelf: "stretch",
     },
     badgesContainer: {
         flexDirection: "row",
         flexWrap: "wrap",
         marginBottom: 20,
+        justifyContent: "flex-start", // ❗ sola yasla
+        width: "100%",                // genişlik tam olsun
     },
     badge: {
         backgroundColor: "#1E90FF",
@@ -120,11 +131,15 @@ export default StyleSheet.create({
     },
     scrollViewContent: {
         alignItems: "center",
-        paddingBottom: 10, // İçerik altına boşluk ekler
+        paddingBottom: 20,
+        paddingHorizontal: 16, // kenarlardan boşluk verir ama daraltmaz
     },
     participationCountContainer: {
         alignItems: "center",
         marginTop: 15,
+        //alignItems: "flex-start", // ❗ ortadan sola
+        width: "100%",            // tam genişlik
+        paddingHorizontal: 24,    // aynı hizadan
     },
     
     participationCountText: {
@@ -217,5 +232,4 @@ export default StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
     },
-    
 });

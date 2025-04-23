@@ -56,7 +56,9 @@ export default function GuestEvents() {
                     return;
                 }
 
-                const eventsList = eventsSnapshot.docs.map(doc => ({
+                const eventsList = eventsSnapshot.docs
+                .filter(doc => doc.data().eventPublish === "1")
+                .map(doc => ({
                     id: doc.id,
                     title: doc.data().eventTittle,
                     date: doc.data().eventDate,
