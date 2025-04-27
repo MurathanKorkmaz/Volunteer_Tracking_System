@@ -1,4 +1,6 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default StyleSheet.create({
     container: {
@@ -9,39 +11,39 @@ export default StyleSheet.create({
     },
     backButton: {
         position: "absolute",
-        top: 70,
-        left: 23,
+        top: screenHeight * 0.09,
+        left: screenWidth * 0.06,
         zIndex: 10,
     },
     backIcon: {
-        fontSize: 48,
+        fontSize: Math.min(screenWidth * 0.12, 48),
         color: "#000",
         fontWeight: "200",
     },
     header: {
         alignItems: "center",
-        paddingVertical: 20,
+        paddingVertical: screenHeight * 0.025,
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        marginBottom: 10,
+        marginBottom: screenHeight * 0.012,
     },
     headerText: {
-        fontSize: 24,
+        fontSize: Math.min(screenWidth * 0.06, 24),
         fontWeight: "bold",
         color: "#333",
     },
     searchContainer: {
-        paddingHorizontal: 20,
-        marginBottom: 10,
-        marginTop: 60,
+        paddingHorizontal: screenWidth * 0.05,
+        marginBottom: screenHeight * 0.012,
+        marginTop: screenHeight * 0.075,
     },
     searchInput: {
-        height: 50,
+        height: screenHeight * 0.065,
         backgroundColor: "#FFF",
         borderRadius: 10,
-        paddingHorizontal: 15,
-        fontSize: 16,
+        paddingHorizontal: screenWidth * 0.04,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         elevation: 3,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
@@ -53,21 +55,21 @@ export default StyleSheet.create({
         height: "64%",
         width: "90%",
         marginHorizontal: "5%",
-        marginBottom: 20,
-        paddingVertical: 10,
+        marginBottom: screenHeight * 0.025,
+        paddingVertical: screenHeight * 0.012,
         borderRadius: 10,
         borderWidth: 0,
     },
     tabContainer: {
         flexDirection: "row",
         justifyContent: "space-evenly",
-        marginVertical: 10,
-        paddingHorizontal: 20,
+        marginVertical: screenHeight * 0.012,
+        paddingHorizontal: screenWidth * 0.05,
     },
     tabButton: {
         flex: 1,
-        padding: 10,
-        marginHorizontal: 5,
+        padding: screenHeight * 0.012,
+        marginHorizontal: screenWidth * 0.012,
         alignItems: "center",
         borderRadius: 10,
         backgroundColor: "#FFF",
@@ -81,7 +83,7 @@ export default StyleSheet.create({
         backgroundColor: "#FFD701",
     },
     tabButtonText: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#333",
     },
     tabButtonTextActive: {
@@ -90,8 +92,8 @@ export default StyleSheet.create({
     userCard: {
         backgroundColor: "#FFF",
         borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
+        padding: screenWidth * 0.04,
+        marginBottom: screenHeight * 0.018,
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
@@ -102,22 +104,22 @@ export default StyleSheet.create({
         elevation: 3,
     },
     userName: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
         color: "#333",
     },
     userRole: {
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#666",
     },
     editButton: {
         backgroundColor: "#FF5733",
-        paddingVertical: 5,
-        paddingHorizontal: 15,
+        paddingVertical: screenHeight * 0.006,
+        paddingHorizontal: screenWidth * 0.04,
         borderRadius: 5,
     },
     editButtonText: {
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#FFF",
         fontWeight: "bold",
     },
@@ -127,23 +129,23 @@ export default StyleSheet.create({
     },
     acceptButton: {
         backgroundColor: "#06a03e",
-        padding: 10,
+        padding: screenHeight * 0.012,
         borderRadius: 5,
-        marginRight: 5,
+        marginRight: screenWidth * 0.012,
     },
     acceptButtonText: {
         color: "#FFF",
         fontWeight: "bold",
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
     },
     rejectButton: {
         backgroundColor: "#FF5733",
-        padding: 10,
+        padding: screenHeight * 0.012,
         borderRadius: 5,
     },
     rejectButtonText: {
         color: "#FFF",
         fontWeight: "bold",
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
     },
 });

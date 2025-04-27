@@ -1,4 +1,6 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default StyleSheet.create({
     container: {
@@ -9,39 +11,39 @@ export default StyleSheet.create({
     },
     backButton: {
         position: "absolute",
-        top: 70,
-        left: 23,
+        top: screenHeight * 0.09,
+        left: screenWidth * 0.06,
         zIndex: 10,
     },
     backIcon: {
-        fontSize: 48,
+        fontSize: Math.min(screenWidth * 0.12, 48),
         color: "#000",
         fontWeight: "200",
     },
     header: {
         alignItems: "center",
-        paddingVertical: 20,
+        paddingVertical: screenHeight * 0.025,
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        marginBottom: 20,
+        marginBottom: screenHeight * 0.025,
     },
     headerText: {
-        fontSize: 24,
+        fontSize: Math.min(screenWidth * 0.06, 24),
         fontWeight: "bold",
         color: "#333",
     },
     searchContainer: {
-        paddingHorizontal: 20,
-        marginBottom: 20,
-        marginTop: 20,
+        paddingHorizontal: screenWidth * 0.05,
+        marginBottom: screenHeight * 0.025,
+        marginTop: screenHeight * 0.025,
     },
     searchInput: {
-        height: 50,
+        height: screenHeight * 0.065,
         backgroundColor: "#FFF",
         borderRadius: 10,
-        paddingHorizontal: 15,
-        fontSize: 16,
+        paddingHorizontal: screenWidth * 0.04,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         elevation: 3,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
@@ -52,13 +54,13 @@ export default StyleSheet.create({
     tabContainer: {
         flexDirection: "row",
         justifyContent: "space-around",
-        marginHorizontal: 20,
-        marginBottom: 20,
+        marginHorizontal: screenWidth * 0.05,
+        marginBottom: screenHeight * 0.025,
     },
     tabButton: {
         flex: 1,
-        marginHorizontal: 5,
-        paddingVertical: 10,
+        marginHorizontal: screenWidth * 0.012,
+        paddingVertical: screenHeight * 0.012,
         borderWidth: 2,
         borderColor: "#FFD700",
         borderRadius: 10,
@@ -71,7 +73,7 @@ export default StyleSheet.create({
         backgroundColor: "#FF5733",
     },
     tabButtonText: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
         color: "#FFD700",
     },
@@ -80,17 +82,17 @@ export default StyleSheet.create({
     },
     scrollableList: {
         flex: 1,
-        marginHorizontal: 20,
-        marginBottom: 20,
+        marginHorizontal: screenWidth * 0.05,
+        marginBottom: screenHeight * 0.025,
         borderRadius: 10,
-        height: 400,
+        height: screenHeight * 0.5,
         overflow: "hidden",
     },
     personCard: {
         backgroundColor: "#FFF",
         borderRadius: 10,
-        padding: 13,
-        marginBottom: 15,
+        padding: screenWidth * 0.035,
+        marginBottom: screenHeight * 0.018,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -101,40 +103,40 @@ export default StyleSheet.create({
         alignItems: "center",
     },
     personName: {
-        fontSize: 18,
+        fontSize: Math.min(screenWidth * 0.045, 18),
         fontWeight: "bold",
         color: "#333",
     },
     actionButtonContainer: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginHorizontal: 20,
-        marginBottom: 20,
+        marginHorizontal: screenWidth * 0.05,
+        marginBottom: screenHeight * 0.025,
     },
     publishButton: {
         flex: 1,
         backgroundColor: "#4CAF50",
-        paddingVertical: 15,
+        paddingVertical: screenHeight * 0.02,
         borderRadius: 10,
-        marginHorizontal: 5,
+        marginHorizontal: screenWidth * 0.012,
         alignItems: "center",
     },
     publishButtonText: {
         color: "#FFF",
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
     },
     unpublishButton: {
         flex: 1,
         backgroundColor: "#FF5733",
-        paddingVertical: 15,
+        paddingVertical: screenHeight * 0.02,
         borderRadius: 10,
-        marginHorizontal: 5,
+        marginHorizontal: screenWidth * 0.012,
         alignItems: "center",
     },
     unpublishButtonText: {
         color: "#FFF",
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
     },
     loadingContainer: {
@@ -143,20 +145,19 @@ export default StyleSheet.create({
         alignItems: "center",
     },
     loadingText: {
-        fontSize: 18,
+        fontSize: Math.min(screenWidth * 0.045, 18),
         fontWeight: "bold",
         color: "#FFD700",
-        marginTop: 10,
+        marginTop: screenHeight * 0.012,
     },
-
     counterContainer: {
         alignItems: "center",
         marginTop: 0,
-        paddingVertical: 10,
+        paddingVertical: screenHeight * 0.012,
         backgroundColor: "#FFF",
         borderRadius: 10,
-        marginHorizontal: 20,
-        marginBottom: 20,
+        marginHorizontal: screenWidth * 0.05,
+        marginBottom: screenHeight * 0.025,
         elevation: 3,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
@@ -164,33 +165,29 @@ export default StyleSheet.create({
         shadowRadius: 4,
     },
     counterText: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
         color: "#333",
     },
-
     progressBarContainer: {
-        height: 20,
+        height: screenHeight * 0.025,
         width: "90%",
         backgroundColor: "#ddd",
         borderRadius: 10,
-        marginHorizontal: 20,
-        marginTop: 55,
+        marginHorizontal: screenWidth * 0.05,
+        marginTop: screenHeight * 0.068,
         overflow: "hidden",
     },
-    
     progressBar: {
         height: "100%",
         backgroundColor: "#4CAF50",
     },
-    
     progressTextContainer: {
-        marginTop: 10,
+        marginTop: screenHeight * 0.012,
         alignItems: "center",
     },
-    
     progressText: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
         color: "#333",
     },

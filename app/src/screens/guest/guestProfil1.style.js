@@ -1,61 +1,63 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default StyleSheet.create({
     container: {
         flex: 1,
-        paddingHorizontal: 24, // sağ-sol boşluk
-        paddingVertical: 16,
-        backgroundColor: "#fff", // varsa gradient’in altına
-        alignItems: "stretch",   // ❗ Bu sayede child'lar genişler
+        paddingHorizontal: screenWidth * 0.06,
+        paddingVertical: screenHeight * 0.02,
+        backgroundColor: "#fff",
+        alignItems: "stretch",
     },
     header: {
-        position: "absolute",      // Ekranın üstüne sabitle
+        position: "absolute",
         top: 0,
         left: 0,
-        right: 0,                  // ❗ Bu üçüyle tam ekran genişliği alırsın
-        zIndex: 1,                 // Diğer şeylerin üstünde dursun
+        right: 0,
+        zIndex: 1,
         alignItems: "center",
-        paddingVertical: 20,
+        paddingVertical: screenHeight * 0.025,
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-      },
+    },
     headerText: {
-        fontSize: 24,
+        fontSize: Math.min(screenWidth * 0.06, 24),
         fontWeight: "bold",
         color: "#333",
     },
     backButton: {
         position: "absolute",
-        top: 80,
-        left: 23,
+        top: screenHeight * 0.09,
+        left: screenWidth * 0.06,
         zIndex: 10,
     },
     backButtonText: {
-        fontSize: 48, // Geri simgesinin boyutu
-        color: "#000", // Siyah renk
+        fontSize: Math.min(screenWidth * 0.12, 48),
+        color: "#000",
         fontWeight: "200",
     },
     profileImage: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        marginTop: 20,
-        marginBottom: 10,
+        width: screenWidth * 0.3,
+        height: screenWidth * 0.3,
+        borderRadius: screenWidth * 0.15,
+        marginTop: screenHeight * 0.025,
+        marginBottom: screenHeight * 0.012,
         borderWidth: 3,
         borderColor: "#FFD700",
     },
     changePhotoText: {
         color: "#007BFF",
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         textDecorationLine: "underline",
-        marginBottom: 20,
+        marginBottom: screenHeight * 0.025,
     },
     graphsContainer: {
         flexDirection: "row",
         justifyContent: "center",
-        marginTop: 130,
-        marginVertical: 20,
+        marginTop: screenHeight * 0.16,
+        marginVertical: screenHeight * 0.025,
         width: "100%",
     },
     circularGraphContainer: {
@@ -64,62 +66,62 @@ export default StyleSheet.create({
     },
     circularGraphText: {
         position: "absolute",
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
         color: "#333",
     },
     circularGraphLabel: {
-        marginTop: 5,
-        fontSize: 12,
+        marginTop: screenHeight * 0.006,
+        fontSize: Math.min(screenWidth * 0.03, 12),
         color: "#333",
         fontWeight: "bold",
     },
     infoContainer: {
-        width: "100%", // kalabilir
-        marginTop: 30,
-        paddingHorizontal: 16, // ekle
+        width: "100%",
+        marginTop: screenHeight * 0.037,
+        paddingHorizontal: screenWidth * 0.04,
     },
     label: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
-        marginBottom: 5,
+        marginBottom: screenHeight * 0.006,
         color: "#333",
-        textAlign: "left", // ❗ sola hizalı
-        width: "100%",     // ❗ tüm satırı kaplasın
+        textAlign: "left",
+        width: "100%",
     },
     input: {
-        width: "100%", // kalabilir ama emin olalım
-        maxWidth: "100%", // taşma olmasın
-        height: 45,
+        width: "100%",
+        maxWidth: "100%",
+        height: screenHeight * 0.055,
         borderColor: "#ccc",
         borderWidth: 1,
         borderRadius: 8,
-        paddingHorizontal: 12,
-        marginBottom: 15,
+        paddingHorizontal: screenWidth * 0.03,
+        marginBottom: screenHeight * 0.018,
         backgroundColor: "#FFF",
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         alignSelf: "stretch",
     },
     badgesContainer: {
         flexDirection: "row",
         flexWrap: "wrap",
-        marginBottom: 20,
-        justifyContent: "flex-start", // ❗ sola yasla
-        width: "100%",                // genişlik tam olsun
+        marginBottom: screenHeight * 0.025,
+        justifyContent: "flex-start",
+        width: "100%",
     },
     badge: {
         backgroundColor: "#1E90FF",
         color: "#FFF",
-        paddingHorizontal: 10,
-        paddingVertical: 5,
+        paddingHorizontal: screenWidth * 0.025,
+        paddingVertical: screenHeight * 0.006,
         borderRadius: 15,
-        marginRight: 10,
-        marginBottom: 10,
-        fontSize: 12,
+        marginRight: screenWidth * 0.025,
+        marginBottom: screenHeight * 0.012,
+        fontSize: Math.min(screenWidth * 0.03, 12),
     },
     resetPasswordButton: {
         backgroundColor: "#FF4500",
-        paddingVertical: 10,
+        paddingVertical: screenHeight * 0.012,
         borderRadius: 8,
         alignItems: "center",
         marginTop: 0,
@@ -127,109 +129,93 @@ export default StyleSheet.create({
     resetPasswordText: {
         color: "#FFF",
         fontWeight: "bold",
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
     },
     scrollViewContent: {
         alignItems: "center",
-        paddingBottom: 20,
-        paddingHorizontal: 16, // kenarlardan boşluk verir ama daraltmaz
+        paddingBottom: screenHeight * 0.025,
+        paddingHorizontal: screenWidth * 0.04,
     },
     participationCountContainer: {
         alignItems: "center",
-        marginTop: 15,
-        //alignItems: "flex-start", // ❗ ortadan sola
-        width: "100%",            // tam genişlik
-        paddingHorizontal: 24,    // aynı hizadan
+        marginTop: screenHeight * 0.018,
+        width: "100%",
+        paddingHorizontal: screenWidth * 0.06,
     },
-    
     participationCountText: {
-        fontSize: 20,
+        fontSize: Math.min(screenWidth * 0.05, 20),
         fontWeight: "bold",
-        color: "#1E90FF", // Canlı Turuncu (Alternatif: "#FFD700" Altın Rengi veya "#1E90FF" Parlak Mavi)
-        textShadowColor: "rgba(0, 0, 0, 0.3)", // Hafif gölge
+        color: "#1E90FF",
+        textShadowColor: "rgba(0, 0, 0, 0.3)",
         textShadowOffset: { width: 1, height: 1 },
         textShadowRadius: 3,
     },
-
     modalBackground: {
         flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.5)", // Şeffaf siyah arka plan
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
         justifyContent: "center",
         alignItems: "center",
     },
-    
     modalContent: {
-        width: "80%", // Modal genişliği
+        width: "80%",
         backgroundColor: "#FFF",
-        padding: 20,
+        padding: screenWidth * 0.05,
         borderRadius: 10,
         alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5, // Android için gölge efekti
+        elevation: 5,
     },
-    
     modalTitle: {
-        fontSize: 20,
+        fontSize: Math.min(screenWidth * 0.05, 20),
         fontWeight: "bold",
-        marginBottom: 10,
+        marginBottom: screenHeight * 0.012,
         color: "#333",
     },
-    
     modalInput: {
         width: "100%",
-        height: 45,
+        height: screenHeight * 0.055,
         borderColor: "#ccc",
         borderWidth: 1,
         borderRadius: 8,
-        paddingHorizontal: 10,
-        marginBottom: 15,
+        paddingHorizontal: screenWidth * 0.03,
+        marginBottom: screenHeight * 0.018,
         backgroundColor: "#FFF",
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
     },
-    
     modalButton: {
-        backgroundColor: "#FFD700", // Altın Sarısı
-        paddingVertical: 10,
-        paddingHorizontal: 20,
+        backgroundColor: "#FFD700",
+        paddingVertical: screenHeight * 0.012,
+        paddingHorizontal: screenWidth * 0.05,
         borderRadius: 8,
-        marginTop: 10,
+        marginTop: screenHeight * 0.012,
     },
-
     resetButton: {
         backgroundColor: "#32CD32",
-        paddingVertical: 12,
+        paddingVertical: screenHeight * 0.015,
         borderRadius: 8,
         alignItems: "center",
-        width: "48%", // Butonları yan yana düzenlemek için
+        width: "48%",
     },
-    
     closeButton: {
         backgroundColor: "#FF4500",
-        paddingVertical: 12,
+        paddingVertical: screenHeight * 0.015,
         borderRadius: 8,
         alignItems: "center",
-        width: "48%", // Butonları yan yana düzenlemek için
+        width: "48%",
     },
-    
     modalButtonText: {
         color: "#333",
         fontWeight: "bold",
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
     },
-
     buttonContainer: {
-        flexDirection: "row", // Butonları yan yana dizer
-        justifyContent: "space-between", // Aralarına eşit boşluk bırakır
-        marginTop: 20,
-        width: "100%", // Tüm genişliği kaplasın
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: screenHeight * 0.025,
+        width: "100%",
     },
-
     buttonText: {
         color: "#fff",
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
     },
 });

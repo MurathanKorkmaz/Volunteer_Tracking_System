@@ -1,4 +1,6 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default StyleSheet.create({
     container: {
@@ -9,39 +11,39 @@ export default StyleSheet.create({
     },
     backButton: {
         position: "absolute",
-        top: 70,
-        left: 23,
+        top: screenHeight * 0.09,
+        left: screenWidth * 0.06,
         zIndex: 10,
     },
     backIcon: {
-        fontSize: 48,
+        fontSize: Math.min(screenWidth * 0.12, 48),
         color: "#000",
         fontWeight: "200",
     },
     header: {
         alignItems: "center",
-        paddingVertical: 20,
+        paddingVertical: screenHeight * 0.025,
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        marginBottom: 10,
+        marginBottom: screenHeight * 0.012,
     },
     headerText: {
-        fontSize: 24,
+        fontSize: Math.min(screenWidth * 0.06, 24),
         fontWeight: "bold",
         color: "#333",
     },
     searchContainer: {
-        paddingHorizontal: 20,
-        marginBottom: 10,
-        marginTop: 30,
+        paddingHorizontal: screenWidth * 0.05,
+        marginBottom: screenHeight * 0.012,
+        marginTop: screenHeight * 0.037,
     },
     searchInput: {
-        height: 50,
+        height: screenHeight * 0.065,
         backgroundColor: "#FFF",
         borderRadius: 10,
-        paddingHorizontal: 15,
-        fontSize: 16,
+        paddingHorizontal: screenWidth * 0.04,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         elevation: 3,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
@@ -50,12 +52,11 @@ export default StyleSheet.create({
         color: "#333",
     },
     scrollableList: {
-        height: "44%", // Sabit yükseklik
-        width: "90%", // Çerçevenin genişliği ekranın %90'ı kadar olacak
-        marginHorizontal: "5%", // Çerçeve, ekranın ortasında konumlanacak
-        marginHorizontal: 20,
-        marginBottom: 20,
-        paddingVertical: 10,
+        height: "44%",
+        width: "90%",
+        marginHorizontal: "5%",
+        marginBottom: screenHeight * 0.025,
+        paddingVertical: screenHeight * 0.012,
         borderRadius: 10,
         borderWidth: 0,
         overflow: "hidden",
@@ -63,8 +64,8 @@ export default StyleSheet.create({
     eventCard: {
         backgroundColor: "#FFF",
         borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
+        padding: screenWidth * 0.04,
+        marginBottom: screenHeight * 0.018,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -78,12 +79,12 @@ export default StyleSheet.create({
         flex: 1,
     },
     eventName: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
         color: "#333",
     },
     eventDate: {
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#666",
     },
     eventActions: {
@@ -92,41 +93,41 @@ export default StyleSheet.create({
     },
     editButton: {
         backgroundColor: "#FFD700",
-        paddingVertical: 5,
-        paddingHorizontal: 10,
+        paddingVertical: screenHeight * 0.006,
+        paddingHorizontal: screenWidth * 0.025,
         borderRadius: 5,
-        marginRight: 10,
+        marginRight: screenWidth * 0.025,
     },
     deleteButton: {
         backgroundColor: "#FF5733",
-        paddingVertical: 5,
-        paddingHorizontal: 10,
+        paddingVertical: screenHeight * 0.006,
+        paddingHorizontal: screenWidth * 0.025,
         borderRadius: 5,
     },
     buttonText: {
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#FFF",
         fontWeight: "bold",
     },
     addButtonContainer: {
         position: "absolute",
-        bottom: 30,
-        left: 20,
-        right: 20,
+        bottom: screenHeight * 0.037,
+        left: screenWidth * 0.05,
+        right: screenWidth * 0.05,
         alignItems: "center",
         zIndex: 10,
         elevation: 5,
     },
     addButton: {
         backgroundColor: "#4CAF50",
-        paddingVertical: 15,
+        paddingVertical: screenHeight * 0.02,
         borderRadius: 10,
         alignItems: "center",
         width: "90%",
     },
     addButtonText: {
         color: "#FFF",
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
     },
     tabContainer: {
@@ -134,19 +135,18 @@ export default StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 0,
-        marginTop: 60,
-        marginHorizontal: 20, // 🔥 Sağ ve sol kenarlardan uzaklaştırır
+        marginTop: screenHeight * 0.075,
+        marginHorizontal: screenWidth * 0.05,
     },
-    
     tabButton: {
-        flex: 1, //  Butonların eşit genişlikte olmasını sağlar
-        paddingVertical: 10,
-        paddingHorizontal: 20,
+        flex: 1,
+        paddingVertical: screenHeight * 0.012,
+        paddingHorizontal: screenWidth * 0.05,
         borderWidth: 2,
         borderColor: "#FFD700",
         borderRadius: 10,
-        alignItems: "center", //  Metnin ortalanmasını sağlar
-        marginHorizontal: 5, //  Butonlar arasında boşluk bırakır
+        alignItems: "center",
+        marginHorizontal: screenWidth * 0.012,
     },
     tabButtonActive1: {
         backgroundColor: "#4CAF50",
@@ -155,7 +155,7 @@ export default StyleSheet.create({
         backgroundColor: "#FF5733",
     },
     tabButtonText: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
         color: "#FFD700",
     },
@@ -163,52 +163,47 @@ export default StyleSheet.create({
         color: "#FFF",
     },
     listSafeArea: {
-    maxHeight: 480,
-    width: "90%",
-    alignSelf: "center",
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginTop: 10,
-    marginBottom: 20,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+        maxHeight: screenHeight * 0.6,
+        width: "90%",
+        alignSelf: "center",
+        backgroundColor: "#FFF",
+        borderRadius: 10,
+        paddingVertical: screenHeight * 0.012,
+        marginTop: screenHeight * 0.012,
+        marginBottom: screenHeight * 0.025,
+        elevation: 3,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
-
     scrollContainer: {
-    flexGrow: 1,
-    paddingBottom: 30,
+        flexGrow: 1,
+        paddingBottom: screenHeight * 0.037,
     },
-
     datePickerContainer: {
         alignItems: "center",
-        marginVertical: 10, // Üst ve alt boşluk
+        marginVertical: screenHeight * 0.012,
     },
-
     datePickerButton: {
         width: "88%",
-        backgroundColor: "#FFD700", // Altın sarısı buton rengi
-        paddingVertical: 10, // Dikey iç boşluk
-        paddingHorizontal: 20, // Yatay iç boşluk
-        borderRadius: 8, // Köşeleri yumuşatma
-        shadowColor: "transparent", // Hafif gölge efekti
+        backgroundColor: "#FFD700",
+        paddingVertical: screenHeight * 0.012,
+        paddingHorizontal: screenWidth * 0.05,
+        borderRadius: 8,
+        shadowColor: "transparent",
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0,
         shadowRadius: 0,
-        elevation: 0, // Android için gölge efekti
+        elevation: 0,
         alignItems: "center",
         alignSelf: "center",
-        marginTop:20,
-        marginBottom: 0, // Alt boşluk
+        marginTop: screenHeight * 0.025,
+        marginBottom: 0,
     },
-
     datePickerText: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#000",
         fontWeight: "bold",
     },
-    
 });

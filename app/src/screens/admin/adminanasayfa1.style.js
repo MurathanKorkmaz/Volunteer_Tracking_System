@@ -1,4 +1,6 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default StyleSheet.create({
     container: {
@@ -10,106 +12,106 @@ export default StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         width: "100%",
-        paddingTop: 10,
+        paddingTop: screenHeight * 0.012,
     },
     logo: {
-        width: 150,
-        height: 150,
+        width: Math.min(screenWidth * 0.4, 150),
+        height: Math.min(screenWidth * 0.4, 150),
         resizeMode: "contain",
-        marginTop: 30,
+        marginTop: screenHeight * 0.04,
     },
     textGradient: {
-        marginTop: 10,
-        paddingHorizontal: 10,
+        marginTop: screenHeight * 0.012,
+        paddingHorizontal: screenWidth * 0.025,
         borderRadius: 5,
     },
     gradientText: {
-        fontSize: 20,
+        fontSize: screenWidth * 0.05,
         fontWeight: "bold",
         textAlign: "center",
         color: "white",
     },
     rowImagesContainer: {
-        marginTop: 75, // Üst yazı ile görseller arasında boşluk
-        alignItems: "center", // Dikey olarak ortalama
+        marginTop: screenHeight * 0.09,
+        alignItems: "center",
     },
     imageRow1: {
         flexDirection: "row",
-        justifyContent: "flex-start", // Görselleri sola hizalama
+        justifyContent: "flex-start",
         alignItems: "center",
         width: "100%",
-        marginTop: -30, // Satırlar arasındaki boşluk
-        paddingLeft: 20, // Görselleri biraz daha sola çekmek için
-        gap: 30,
+        marginTop: screenHeight * -0.035,
+        paddingLeft: screenWidth * 0.05,
+        gap: screenWidth * 0.08,
     },
     imageRow2: {
         flexDirection: "row",
-        justifyContent: "flex-start", // Görselleri sola hizalama
+        justifyContent: "flex-start",
         alignItems: "center",
         width: "100%",
-        marginTop: 15, // İkinci satır üstündeki boşluk
-        marginBottom: 40,
-        paddingLeft: 20, // Görselleri biraz daha sola çekmek için
-        gap: 30,
+        marginTop: screenHeight * 0.018,
+        marginBottom: screenHeight * 0.05,
+        paddingLeft: screenWidth * 0.05,
+        gap: screenWidth * 0.08,
     },
     largeImage: {
-        width: 70,
-        height: 70,
+        width: Math.min(screenWidth * 0.18, 70),
+        height: Math.min(screenWidth * 0.18, 70),
         resizeMode: "contain",
-        marginRight: 15, // Görseller arasındaki boşluk
+        marginRight: screenWidth * 0.04,
     },
     bottomSection: {
         flex: 0.5,
         backgroundColor: "white",
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
-        padding: 20,
+        padding: screenWidth * 0.05,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: 0.1,
         shadowRadius: 5,
         elevation: 5,
-        marginTop: -20,
+        marginTop: screenHeight * -0.025,
         alignItems: "center",
     },
     imagesContainer: {
         flexDirection: "row",
-        justifyContent: "space-between", // Görselleri eşit boşlukla yay
+        justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 20, // Görsellerin altındaki boşluk
+        marginBottom: screenHeight * 0.025,
     },
     image: {
-        width: 80, // Alt görsellerin genişliği
-        height: 80, // Alt görsellerin yüksekliği
+        width: Math.min(screenWidth * 0.2, 80),
+        height: Math.min(screenWidth * 0.2, 80),
         resizeMode: "contain",
-        marginHorizontal: 15, // Her görsel arasında 15 piksel boşluk
+        marginHorizontal: screenWidth * 0.04,
     },
     title: {
-        fontSize: 20,
+        fontSize: screenWidth * 0.05,
         fontWeight: "bold",
         color: "black",
-        marginBottom: 10,
+        marginBottom: screenHeight * 0.012,
         textAlign: "center",
     },
     description: {
-        fontSize: 14,
+        fontSize: screenWidth * 0.035,
         color: "gray",
         textAlign: "center",
-        marginBottom: 20,
+        marginBottom: screenHeight * 0.025,
     },
     buttonCentered: {
         backgroundColor: "#FF5733",
         borderRadius: 8,
-        paddingVertical: 15,
-        paddingHorizontal: 20,
+        paddingVertical: screenHeight * 0.018,
+        paddingHorizontal: screenWidth * 0.05,
         width: "100%",
         alignItems: "center",
-        marginBottom: 20,
+        marginBottom: screenHeight * 0.025,
     },
     buttonText: {
         color: "white",
         fontWeight: "bold",
-        fontSize: 16,
+        fontSize: screenWidth * 0.04,
         textAlign: "center",
     },
 });

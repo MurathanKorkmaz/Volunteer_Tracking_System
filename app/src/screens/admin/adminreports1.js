@@ -108,18 +108,33 @@ export default function adminReports1() {
         try {
             const year = selectedDate.getFullYear().toString();
             const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
-
+    
             const eventDocRef = doc(db, "pastEvents", year, month, eventId);
+    
+            // 1️⃣ Alt koleksiyonları sil
+            const subCollections = ["Particant", "NonParticant"];  // Buraya alt koleksiyon isimlerini ekle
+            for (const subColName of subCollections) {
+                const subColRef = collection(db, "pastEvents", year, month, eventId, subColName);
+                const subDocsSnap = await getDocs(subColRef);
+    
+                for (const subDoc of subDocsSnap.docs) {
+                    await deleteDoc(subDoc.ref);
+                }
+            }
+    
+            // 2️⃣ Ana dokümanı sil
             await deleteDoc(eventDocRef);
-
-            Alert.alert("Başarılı", "Etkinlik silindi.");
+    
+            Alert.alert("Başarılı", "Etkinlik ve alt koleksiyonları silindi.");
             setEvents(events.filter((event) => event.id !== eventId));
             setFilteredEvents(filteredEvents.filter((event) => event.id !== eventId));
+    
         } catch (error) {
             console.error("Etkinlik silinirken hata oluştu:", error);
             Alert.alert("Hata", "Etkinlik silinirken bir hata oluştu.");
         }
     };
+    
 
     const handleEditEvent = (event) => {
         router.push({

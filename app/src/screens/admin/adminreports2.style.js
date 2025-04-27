@@ -1,4 +1,6 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default StyleSheet.create({
     container: {
@@ -9,39 +11,39 @@ export default StyleSheet.create({
     },
     backButton: {
         position: "absolute",
-        top: 70,
-        left: 23,
+        top: screenHeight * 0.09,
+        left: screenWidth * 0.06,
         zIndex: 10,
     },
     backIcon: {
-        fontSize: 48,
+        fontSize: Math.min(screenWidth * 0.12, 48),
         color: "#000",
         fontWeight: "200",
     },
     header: {
         alignItems: "center",
-        paddingVertical: 20,
+        paddingVertical: screenHeight * 0.025,
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        marginBottom: 10,
+        marginBottom: screenHeight * 0.012,
     },
     headerText: {
-        fontSize: 24,
+        fontSize: Math.min(screenWidth * 0.06, 24),
         fontWeight: "bold",
         color: "#333",
     },
     searchContainer: {
-        paddingHorizontal: 20,
-        marginBottom: 5,
-        marginTop: 60,
+        paddingHorizontal: screenWidth * 0.05,
+        marginBottom: screenHeight * 0.006,
+        marginTop: screenHeight * 0.075,
     },
     searchInput: {
-        height: 50,
+        height: screenHeight * 0.065,
         backgroundColor: "#FFF",
         borderRadius: 10,
-        paddingHorizontal: 15,
-        fontSize: 16,
+        paddingHorizontal: screenWidth * 0.04,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         elevation: 3,
         color: "#333",
     },
@@ -49,15 +51,15 @@ export default StyleSheet.create({
         height: "73%",
         width: "90%",
         marginHorizontal: "5%",
-        marginBottom: 20,
-        paddingVertical: 10,
+        marginBottom: screenHeight * 0.025,
+        paddingVertical: screenHeight * 0.012,
         borderRadius: 10,
     },
     eventCard: {
         backgroundColor: "#FFF",
         borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
+        padding: screenWidth * 0.04,
+        marginBottom: screenHeight * 0.018,
         elevation: 3,
         flexDirection: "row",
         justifyContent: "space-between",
@@ -67,24 +69,22 @@ export default StyleSheet.create({
         flex: 1,
     },
     eventName: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
         color: "#333",
     },
     eventDate: {
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#666",
     },
     buttonText: {
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#FFF",
         fontWeight: "bold",
     },
-
     eventDetail: {
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#333",
-        marginTop: 4,
+        marginTop: screenHeight * 0.005,
     },
-    
 });

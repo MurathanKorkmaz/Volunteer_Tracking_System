@@ -1,4 +1,6 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default StyleSheet.create({
     container: {
@@ -9,31 +11,31 @@ export default StyleSheet.create({
     },
     backButton: {
         position: "absolute",
-        top: 70,
-        left: 20,
+        top: screenHeight * 0.09,
+        left: screenWidth * 0.05,
         zIndex: 10,
     },
     backIcon: {
-        fontSize: 48,
+        fontSize: Math.min(screenWidth * 0.12, 48),
         color: "#000",
         fontWeight: "200",
     },
     header: {
         alignItems: "center",
-        paddingVertical: 20,
+        paddingVertical: screenHeight * 0.025,
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        marginBottom: 20,
+        marginBottom: screenHeight * 0.025,
     },
     headerText: {
-        fontSize: 24,
+        fontSize: Math.min(screenWidth * 0.06, 24),
         fontWeight: "bold",
         color: "#333",
     },
     inputContainer: {
-        marginHorizontal: 20,
-        padding: 20,
+        marginHorizontal: screenWidth * 0.05,
+        padding: screenWidth * 0.05,
         backgroundColor: "#FFF",
         borderRadius: 10,
         elevation: 3,
@@ -43,18 +45,18 @@ export default StyleSheet.create({
         shadowRadius: 4,
     },
     label: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
         color: "#333",
-        marginBottom: 10,
+        marginBottom: screenHeight * 0.012,
     },
     input: {
-        height: 50,
+        height: screenHeight * 0.065,
         backgroundColor: "#F7F7F7",
         borderRadius: 10,
-        paddingHorizontal: 15,
-        marginBottom: 20,
-        fontSize: 16,
+        paddingHorizontal: screenWidth * 0.04,
+        marginBottom: screenHeight * 0.025,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#333",
         elevation: 2,
         shadowColor: "#000",
@@ -62,25 +64,23 @@ export default StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 2,
     },
-
     tabContainer: {
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 0,
-        marginTop: 60,
-        marginHorizontal: 20, // 🔥 Sağ ve sol kenarlardan uzaklaştırır
+        marginTop: screenHeight * 0.075,
+        marginHorizontal: screenWidth * 0.05,
     },
-
     tabButton: {
-        flex: 1, //  Butonların eşit genişlikte olmasını sağlar
-        paddingVertical: 10,
-        paddingHorizontal: 20,
+        flex: 1,
+        paddingVertical: screenHeight * 0.012,
+        paddingHorizontal: screenWidth * 0.05,
         borderWidth: 2,
         borderColor: "#FFD700",
         borderRadius: 10,
-        alignItems: "center", //  Metnin ortalanmasını sağlar
-        marginHorizontal: 5, //  Butonlar arasında boşluk bırakır
+        alignItems: "center",
+        marginHorizontal: screenWidth * 0.012,
     },
     tabButtonActive1: {
         backgroundColor: "#4CAF50",
@@ -88,132 +88,113 @@ export default StyleSheet.create({
     tabButtonActive2: {
         backgroundColor: "#FF5733",
     },
-
     tabButtonText: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
         color: "#FFD700",
     },
     tabButtonTextActive: {
         color: "#FFF",
     },
-
     textArea: {
-        height: 100,
+        height: screenHeight * 0.13,
         backgroundColor: "#F7F7F7",
         borderRadius: 10,
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        fontSize: 16,
+        paddingHorizontal: screenWidth * 0.04,
+        paddingVertical: screenHeight * 0.012,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#333",
         elevation: 2,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        marginBottom: 20,
+        marginBottom: screenHeight * 0.025,
         textAlignVertical: "top",
     },
     dateInput: {
-        height: 50,
+        height: screenHeight * 0.065,
         backgroundColor: "#F7F7F7",
         borderRadius: 10,
-        paddingHorizontal: 15,
+        paddingHorizontal: screenWidth * 0.04,
         justifyContent: "center",
-        marginBottom: 20,
+        marginBottom: screenHeight * 0.025,
         elevation: 2,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
     },
     dateText: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#333",
     },
     filePickerContainer: {
-        marginHorizontal: 20,
-        marginTop: 20,
-        padding: 20,
+        marginHorizontal: screenWidth * 0.05,
+        marginTop: screenHeight * 0.025,
+        padding: screenWidth * 0.05,
         backgroundColor: "#FFF",
         borderRadius: 10,
         elevation: 3,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
     },
     filePickerButton: {
         backgroundColor: "#FF5733",
-        paddingVertical: 10,
-        paddingHorizontal: 15,
+        paddingVertical: screenHeight * 0.012,
+        paddingHorizontal: screenWidth * 0.04,
         borderRadius: 10,
         alignItems: "center",
-        marginBottom: 10,
+        marginBottom: screenHeight * 0.012,
     },
     filePickerButtonText: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#FFF",
         fontWeight: "bold",
     },
     selectedFileText: {
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#333",
-        marginTop: 10,
+        marginTop: screenHeight * 0.012,
     },
     saveButton: {
-        marginHorizontal: 20,
-        paddingVertical: 15,
+        marginHorizontal: screenWidth * 0.05,
+        paddingVertical: screenHeight * 0.02,
         borderRadius: 10,
         backgroundColor: "#4CAF50",
         alignItems: "center",
-        marginTop: 20,
-        marginBottom: 20,
+        marginTop: screenHeight * 0.025,
+        marginBottom: screenHeight * 0.025,
     },
     saveButtonText: {
-        fontSize: 18,
+        fontSize: Math.min(screenWidth * 0.045, 18),
         fontWeight: "bold",
         color: "#FFF",
     },
-
-    /** Etkinlik Türü ve Yayın Türü İçin Stiller **/
     dropdownContainer: {
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-between",
-        marginBottom: 20,
+        marginBottom: screenHeight * 0.025,
     },
     dropdownItem: {
         width: "48%",
-        paddingVertical: 10,
+        paddingVertical: screenHeight * 0.012,
         borderWidth: 2,
         borderColor: "#FFD700",
         borderRadius: 5,
         alignItems: "center",
-        marginBottom: 10,
-        },
+        marginBottom: screenHeight * 0.012,
+    },
     dropdownItemSelected: {
         backgroundColor: "#FFD700",
     },
     dropdownText: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         fontWeight: "bold",
         color: "#FFD700",
     },
     dropdownTextSelected: {
         color: "#FFF",
     },
-
     scrollableContainer: {
         flex: 1,
-        paddingTop: 40,
-        width: "100%", // Tam genişlik kullan
+        paddingTop: screenHeight * 0.05,
+        width: "100%",
     },
-        
     scrollContainer: {
         flexGrow: 1,
         paddingVertical: 0,
-        paddingHorizontal: 0, // Kenarlardan boşluk ver
+        paddingHorizontal: 0,
     },
-        
 });

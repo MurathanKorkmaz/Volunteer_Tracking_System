@@ -1,4 +1,6 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default StyleSheet.create({
     container: {
@@ -9,40 +11,40 @@ export default StyleSheet.create({
     },
     backButton: {
         position: "absolute",
-        top: 70,
-        left: 23,
+        top: screenHeight * 0.09,
+        left: screenWidth * 0.06,
         zIndex: 10,
     },
     backIcon: {
-        fontSize: 48,
+        fontSize: Math.min(screenWidth * 0.12, 48),
         color: "#000",
         fontWeight: "200",
     },
     header: {
         alignItems: "center",
-        paddingVertical: 20,
+        paddingVertical: screenHeight * 0.025,
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        marginBottom: 20,
+        marginBottom: screenHeight * 0.025,
     },
     headerText: {
-        fontSize: 24,
+        fontSize: Math.min(screenWidth * 0.06, 24),
         fontWeight: "bold",
         color: "#333",
     },
     scrollContainer: {
         alignItems: "center",
-        paddingHorizontal: 20,
-        paddingTop: 20,
+        paddingHorizontal: screenWidth * 0.05,
+        paddingTop: screenHeight * 0.025,
     },
     card1: {
         width: "90%",
-        padding: 20,
+        padding: screenWidth * 0.05,
         backgroundColor: "#E6E6FA",
         borderRadius: 15,
-        marginTop:30,
-        marginBottom: 20,
+        marginTop: screenHeight * 0.037,
+        marginBottom: screenHeight * 0.025,
         elevation: 5,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
@@ -52,10 +54,10 @@ export default StyleSheet.create({
     },
     card2: {
         width: "90%",
-        padding: 20,
+        padding: screenWidth * 0.05,
         backgroundColor: "#E6E6FA",
         borderRadius: 15,
-        marginBottom: 20,
+        marginBottom: screenHeight * 0.025,
         elevation: 5,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
@@ -64,13 +66,13 @@ export default StyleSheet.create({
         alignItems: "center",
     },
     cardTitle: {
-        fontSize: 18,
+        fontSize: Math.min(screenWidth * 0.045, 18),
         fontWeight: "bold",
         color: "#333",
-        marginBottom: 10,
+        marginBottom: screenHeight * 0.012,
     },
     cardDescription: {
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#666",
         textAlign: "center",
     },

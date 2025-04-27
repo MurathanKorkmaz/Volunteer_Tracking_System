@@ -1,4 +1,6 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default StyleSheet.create({
     container: {
@@ -9,39 +11,39 @@ export default StyleSheet.create({
     },
     backButton: {
         position: "absolute",
-        top: 70,
-        left: 23,
+        top: screenHeight * 0.09,
+        left: screenWidth * 0.06,
         zIndex: 10,
     },
     backIcon: {
-        fontSize: 48,
+        fontSize: Math.min(screenWidth * 0.12, 48),
         color: "#000",
         fontWeight: "200",
     },
     header: {
         alignItems: "center",
-        paddingVertical: 20,
+        paddingVertical: screenHeight * 0.025,
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        marginBottom: 10,
+        marginBottom: screenHeight * 0.012,
     },
     headerText: {
-        fontSize: 24,
+        fontSize: Math.min(screenWidth * 0.06, 24),
         fontWeight: "bold",
         color: "#333",
     },
     searchContainer: {
-        paddingHorizontal: 20,
-        marginBottom: 10,
-        marginTop: 25,
+        paddingHorizontal: screenWidth * 0.05,
+        marginBottom: screenHeight * 0.012,
+        marginTop: screenHeight * 0.025,
     },
     searchInput: {
-        height: 50,
+        height: screenHeight * 0.065,
         backgroundColor: "#FFF",
         borderRadius: 10,
-        paddingHorizontal: 15,
-        fontSize: 16,
+        paddingHorizontal: screenWidth * 0.04,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         elevation: 3,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
@@ -50,13 +52,13 @@ export default StyleSheet.create({
         color: "#333",
     },
     scrollableList: {
-        paddingBottom: 20,
+        paddingBottom: screenHeight * 0.025,
     },
     eventCard: {
         backgroundColor: "#FFF",
         borderRadius: 10,
-        padding: 15,
-        marginBottom: 15,
+        padding: screenWidth * 0.04,
+        marginBottom: screenHeight * 0.018,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -64,96 +66,93 @@ export default StyleSheet.create({
         elevation: 3,
         flexDirection: "column",
         alignItems: "center",
-        marginHorizontal: 20,
+        marginHorizontal: screenWidth * 0.05,
     },
     eventDetails: {
         flex: 1,
         alignItems: "center",
     },
     eventName: {
-        fontSize: 18,
+        fontSize: Math.min(screenWidth * 0.045, 18),
         fontWeight: "bold",
         color: "#333",
-        marginBottom: 5,
+        marginBottom: screenHeight * 0.006,
     },
     eventDate: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#666",
-        marginBottom: 5,
+        marginBottom: screenHeight * 0.006,
     },
     eventQuota: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#444",
         fontWeight: "bold",
-        marginBottom: 10,
+        marginBottom: screenHeight * 0.012,
     },
     eventPoint: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#08d3d3",
         fontWeight: "bold",
-        marginBottom: 20,
+        marginBottom: screenHeight * 0.018,
     },
     buttonContainer: {
         flexDirection: "row",
         justifyContent: "space-between",
         width: "100%",
-        paddingHorizontal: 20,
+        paddingHorizontal: screenWidth * 0.05,
     },
     applyButton: {
         backgroundColor: "#4CAF50",
-        paddingVertical: 10,
-        paddingHorizontal: 20,
+        paddingVertical: screenHeight * 0.012,
+        paddingHorizontal: screenWidth * 0.05,
         borderRadius: 5,
     },
     cancelButton: {
         backgroundColor: "#D32F2F",
-        paddingVertical: 10,
-        paddingHorizontal: 20,
+        paddingVertical: screenHeight * 0.012,
+        paddingHorizontal: screenWidth * 0.05,
         borderRadius: 5,
     },
     buttonText: {
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#FFF",
         fontWeight: "bold",
     },
     warningContainer: {
-        padding: 15,
+        padding: screenWidth * 0.04,
         backgroundColor: "rgba(255, 0, 0, 0.1)",
         borderRadius: 10,
-        marginHorizontal: 20,
-        marginBottom: 20,
+        marginHorizontal: screenWidth * 0.05,
+        marginBottom: screenHeight * 0.025,
     },
     warningText: {
         color: "#D32F2F",
-        fontSize: 14,
+        fontSize: Math.min(screenWidth * 0.035, 14),
         textAlign: "center",
         fontWeight: "bold",
     },
-
     datePickerContainer: {
         alignItems: "center",
-        marginVertical: 10, // Üst ve alt boşluk
+        marginVertical: screenHeight * 0.012,
     },
-
     datePickerButton: {
         width: "88%",
-        backgroundColor: "#FFD700", // Altın sarısı buton rengi
-        paddingVertical: 10, // Dikey iç boşluk
-        paddingHorizontal: 20, // Yatay iç boşluk
-        borderRadius: 8, // Köşeleri yumuşatma
-        shadowColor: "transparent", // Hafif gölge efekti
+        backgroundColor: "#FFD700",
+        paddingVertical: screenHeight * 0.012,
+        paddingHorizontal: screenWidth * 0.05,
+        borderRadius: 8,
+        shadowColor: "transparent",
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0,
         shadowRadius: 0,
-        elevation: 0, // Android için gölge efekti
+        elevation: 0,
         alignItems: "center",
         alignSelf: "center",
-        marginTop:60,
-        marginBottom: 0, // Alt boşluk
+        marginTop: screenHeight * 0.075,
+        marginBottom: 0,
     },
-
     datePickerText: {
-        fontSize: 16,
+        fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#000",
         fontWeight: "bold",
     },

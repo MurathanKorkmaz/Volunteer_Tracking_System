@@ -157,7 +157,7 @@ export default function adminAnnouncementsEdit1() {
 
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.headerText}>Duyuru Ekle</Text>
+                    <Text style={styles.headerText}>Duyuru Güncelle</Text>
                 </View>
                 
 

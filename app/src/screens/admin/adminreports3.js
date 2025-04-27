@@ -97,13 +97,13 @@ export default function adminReports3() {
                 </TouchableOpacity>
 
                 <View style={styles.header}>
-                    <Text style={styles.headerText}>Gönüllü Raporları</Text>
+                    <Text style={styles.headerText}>Kayıt Raporları</Text>
                 </View>
 
                 <View style={styles.searchContainer}>
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Etkinlik ara..."
+                        placeholder="Kişi ara..."
                         placeholderTextColor="#888"
                         value={searchText}
                         onChangeText={handleSearch}
