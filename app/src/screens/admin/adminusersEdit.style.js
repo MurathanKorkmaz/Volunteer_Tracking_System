@@ -122,7 +122,7 @@ export default StyleSheet.create({
     },
     deleteButton: {
         marginTop: screenHeight * 0.025,
-        marginHorizontal: screenWidth * 0.05,
+        marginHorizontal: screenWidth * 0.1,
         paddingVertical: screenHeight * 0.02,
         borderRadius: 10,
         backgroundColor: "#FF5733",
@@ -138,7 +138,7 @@ export default StyleSheet.create({
         height: screenHeight * 0.05,
     },
     scrollContainer: {
-        height: "60%",
+        height: "90%",
         marginTop: screenHeight * 0.025,
         marginHorizontal: screenWidth * 0.05,
         borderRadius: 10,

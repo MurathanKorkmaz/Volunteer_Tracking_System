@@ -12,6 +12,7 @@ import {
     Platform,
     Animated,
     Dimensions,
+    ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -23,7 +24,7 @@ import { db } from "../../../../configs/FirebaseConfig";
 export default function admineventsEdit1() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const screenWidth = Dimensions.get('window').width;
+    const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
     const initialX = params.from === "events" ? screenWidth : 0;
     const translateX = useRef(new Animated.Value(initialX)).current;
 
@@ -60,6 +61,7 @@ export default function admineventsEdit1() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [originalData, setOriginalData] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     const eventTypes = ["Toplantı", "Etkinlik", "Eğitim", "Workshop"];
     const publishTypes = ["Yayında", "Yayında Değil"];
@@ -109,6 +111,9 @@ export default function admineventsEdit1() {
             } catch (error) {
                 console.error("Etkinlik verileri alınırken hata oluştu:", error);
                 Alert.alert("Hata", "Veriler alınırken bir hata oluştu.");
+            }
+            finally {
+                setLoading(false);
             }
         };
 
@@ -184,91 +189,100 @@ export default function admineventsEdit1() {
                             contentContainerStyle={styles.scrollContainer}
                             keyboardShouldPersistTaps="handled"
                         >
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.label}>Etkinlik İsmi</Text>
-                                <TextInput style={styles.input} value={eventTittle} onChangeText={setEventTittle} placeholder="Etkinlik ismini girin" />
+                            <View>
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.label}>Etkinlik İsmi</Text>
+                                    <TextInput style={styles.input} value={eventTittle} onChangeText={setEventTittle} placeholder="Etkinlik ismini girin" editable={!loading}/>
 
-                                <Text style={styles.label}>Etkinlik Türü</Text>
-                                <View style={styles.dropdownContainer}>
-                                    {eventTypes.map((type) => (
-                                        <TouchableOpacity key={type} style={[styles.dropdownItem, eventType === type && styles.dropdownItemSelected]} onPress={() => setEventType(type)}>
-                                            <Text style={[styles.dropdownText, eventType === type && styles.dropdownTextSelected]}>{type}</Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                                
-                                <Text style={styles.label}>Etkinlik Konumu</Text>
-                                <TextInput style={styles.input} value={eventLocation} onChangeText={setEventLocation} placeholder="Konum girin" />
+                                    <Text style={styles.label}>Etkinlik Türü</Text>
+                                    <View style={styles.dropdownContainer}>
+                                        {eventTypes.map((type) => (
+                                            <TouchableOpacity key={type} style={[styles.dropdownItem, eventType === type && styles.dropdownItemSelected]} onPress={() => setEventType(type)} disabled={loading}>
+                                                <Text style={[styles.dropdownText, eventType === type && styles.dropdownTextSelected]}>{type}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                    
+                                    <Text style={styles.label}>Etkinlik Konumu</Text>
+                                    <TextInput style={styles.input} value={eventLocation} onChangeText={setEventLocation} placeholder="Konum girin" editable={!loading}/>
 
-                                <Text style={styles.label}>Etkinlik Tarihi</Text>
-                                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateInput}>
-                                    <Text style={styles.dateText}>{eventDate.toISOString().split("T")[0]}</Text>
-                                </TouchableOpacity>
-                                {showDatePicker && (
-                                    <DateTimePicker
-                                        value={eventDate}
-                                        mode="date"
-                                        display="default"
-                                        onChange={(event, selectedDate) => {
-                                            setShowDatePicker(false);
-                                            if (selectedDate) setEventDate(selectedDate);
-                                        }}
+                                    <Text style={styles.label}>Etkinlik Tarihi</Text>
+                                    <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateInput} disabled={loading}>
+                                        <Text style={styles.dateText}>{eventDate.toISOString().split("T")[0]}</Text>
+                                    </TouchableOpacity>
+                                    {showDatePicker && (
+                                        <DateTimePicker
+                                            value={eventDate}
+                                            mode="date"
+                                            display="default"
+                                            onChange={(event, selectedDate) => {
+                                                setShowDatePicker(false);
+                                                if (selectedDate) setEventDate(selectedDate);
+                                            }}
+                                        />
+                                    )}
+
+                                    <Text style={styles.label}>Etkinlik Saati</Text>
+                                    <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.dateInput} disabled={loading}>
+                                        <Text style={styles.dateText}>
+                                            {eventTime instanceof Date && !isNaN(eventTime) 
+                                                ? eventTime.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }) 
+                                                : "Saat Seç"}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    {showTimePicker && (
+                                        <DateTimePicker
+                                            value={eventTime instanceof Date && !isNaN(eventTime) ? eventTime : new Date(1970, 0, 1, 12, 0, 0)} 
+                                            mode="time"
+                                            display="default"
+                                            onChange={onChangeTime}
+                                        />
+                                    )}
+
+                                    <Text style={styles.label}>Katılımcı Sınırı</Text>
+                                    <TextInput style={styles.input} value={eventLimit} onChangeText={setEventLimit} keyboardType="numeric" placeholder="Sınır girin" editable={!loading}/>
+
+                                    <Text style={styles.label}>Etkinlik Puanı</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={eventScore}
+                                        onChangeText={setEventScore} 
+                                        placeholder="Etkinlik puanı"
+                                        editable={!loading}
                                     />
-                                )}
 
-                                <Text style={styles.label}>Etkinlik Saati</Text>
-                                <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.dateInput}>
-                                    <Text style={styles.dateText}>
-                                        {eventTime instanceof Date && !isNaN(eventTime) 
-                                            ? eventTime.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }) 
-                                            : "Saat Seç"}
-                                    </Text>
-                                </TouchableOpacity>
-                                {showTimePicker && (
-                                    <DateTimePicker
-                                        value={eventTime instanceof Date && !isNaN(eventTime) ? eventTime : new Date(1970, 0, 1, 12, 0, 0)} 
-                                        mode="time"
-                                        display="default"
-                                        onChange={onChangeTime}
-                                    />
-                                )}
+                                    <Text style={styles.label}>Etkinlik Açıklaması</Text>
+                                    <TextInput style={styles.textArea} value={eventStatement} onChangeText={setEventStatement} placeholder="Açıklama girin" multiline={true} editable={!loading}/>
 
-                                <Text style={styles.label}>Katılımcı Sınırı</Text>
-                                <TextInput style={styles.input} value={eventLimit} onChangeText={setEventLimit} keyboardType="numeric" placeholder="Sınır girin" />
+                                    <Text style={styles.label}>Yayın Türü</Text>
+                                    <View style={styles.dropdownContainer}>
+                                        {publishTypes.map((type) => (
+                                            <TouchableOpacity key={type} style={[styles.dropdownItem, eventPublish === (type === "Yayında" ? "1" : "0") && styles.dropdownItemSelected]} onPress={() => setEventPublish(type === "Yayında" ? "1" : "0")} disabled={loading}>
+                                                <Text style={[styles.dropdownText, eventPublish === (type === "Yayında" ? "1" : "0") && styles.dropdownTextSelected]}>{type}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
 
-                                <Text style={styles.label}>Etkinlik Puanı</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={eventScore}
-                                    onChangeText={setEventScore} 
-                                    placeholder="Etkinlik puanı"
-                                />
-
-                                <Text style={styles.label}>Etkinlik Açıklaması</Text>
-                                <TextInput style={styles.textArea} value={eventStatement} onChangeText={setEventStatement} placeholder="Açıklama girin" multiline={true} />
-
-                                <Text style={styles.label}>Yayın Türü</Text>
-                                <View style={styles.dropdownContainer}>
-                                    {publishTypes.map((type, index) => (
-                                        <TouchableOpacity 
-                                            key={type} 
-                                            style={[styles.dropdownItem, eventPublish === (index === 0 ? "1" : "0") && styles.dropdownItemSelected]} 
-                                            onPress={() => setEventPublish(index === 0 ? "1" : "0")}
-                                        >
-                                            <Text style={[styles.dropdownText, eventPublish === (index === 0 ? "1" : "0") && styles.dropdownTextSelected]}>
-                                                {type}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-
-                                <View style={styles.buttonContainer}>
-                                    <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                                    <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading}>
                                         <Text style={styles.saveButtonText}>Kaydet</Text>
                                     </TouchableOpacity>
+
+                                    {loading && (
+                                        <View style={styles.loadingOverlay}>
+                                            <View style={styles.loadingContainer}>
+                                                <ActivityIndicator size="large" color="#3B82F6" />
+                                                <Text style={styles.loadingText}>Veriler Yükleniyor...</Text>
+                                            </View>
+                                        </View>
+                                    )}
                                 </View>
                             </View>
                         </ScrollView>
+                        
+                        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+                            <Text style={styles.backIcon}>{"<"}</Text>
+                        </TouchableOpacity>
+
                     </KeyboardAvoidingView>
                 </Animated.View>
             </LinearGradient>

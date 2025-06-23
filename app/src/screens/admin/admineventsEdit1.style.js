@@ -35,11 +35,12 @@ export default StyleSheet.create({
     },
     scrollableContent: {
         flex: 1,
-        marginTop: screenHeight * 0.025,
+        marginTop: screenHeight * 0.065,
+        marginBottom: screenHeight * 0.010,
     },
     scrollContainer: {
         flexGrow: 1,
-        paddingBottom: screenHeight * 0.037,
+        paddingBottom: screenHeight * 0.020,
     },
     inputContainer: {
         marginHorizontal: screenWidth * 0.05,
@@ -100,13 +101,11 @@ export default StyleSheet.create({
         textAlignVertical: "top",
     },
     saveButton: {
-        marginHorizontal: screenWidth * 0.05,
         paddingVertical: screenHeight * 0.02,
         borderRadius: 10,
         backgroundColor: "#4CAF50",
         alignItems: "center",
         marginTop: screenHeight * 0.025,
-        marginBottom: screenHeight * 0.012,
     },
     saveButtonText: {
         fontSize: Math.min(screenWidth * 0.045, 18),
@@ -138,5 +137,40 @@ export default StyleSheet.create({
     },
     dropdownTextSelected: {
         color: "#FFF",
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+        borderRadius: 10,
+    },
+    loadingContainer: {
+        backgroundColor: 'white',
+        padding: 30,
+        borderRadius: 15,
+        alignItems: 'center',
+        minWidth: 200,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        borderWidth: 2,
+        borderColor: '#3B82F6',
+    },
+    loadingText: {
+        color: '#3B82F6',
+        fontSize: 16,
+        fontWeight: '600',
+        marginTop: 10,
     },
 });

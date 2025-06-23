@@ -297,18 +297,18 @@ export default function adminusersEdit() {
                                 />
                             </View>
 
-    
+                            {/* Sil ve Kaydet Butonları (Scroll'un dışında) */}
+                            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+                                <Text style={styles.deleteButtonText}>Kullanıcıyı Sil</Text>
+                            </TouchableOpacity>
+            
+                            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                                <Text style={styles.saveButtonText}>Kaydet</Text>
+                            </TouchableOpacity>
                         </ScrollView>
                     </View>
     
-                    {/* Sil ve Kaydet Butonları (Scroll'un dışında) */}
-                    <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-                        <Text style={styles.deleteButtonText}>Kullanıcıyı Sil</Text>
-                    </TouchableOpacity>
-    
-                    <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                        <Text style={styles.saveButtonText}>Kaydet</Text>
-                    </TouchableOpacity>
+
     
                 </Animated.View>
             </LinearGradient>
