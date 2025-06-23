@@ -139,7 +139,7 @@ export default StyleSheet.create({
     },
     scrollContainer: {
         height: "60%",
-        marginTop: screenHeight * 0.05,
+        marginTop: screenHeight * 0.025,
         marginHorizontal: screenWidth * 0.05,
         borderRadius: 10,
         padding: screenHeight * 0.012,

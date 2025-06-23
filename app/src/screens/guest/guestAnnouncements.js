@@ -1,4 +1,4 @@
-import React, { useState, useEffect  } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     SafeAreaView,
     View,
@@ -6,36 +6,48 @@ import {
     TextInput,
     ScrollView,
     TouchableOpacity,
+    Animated,
+    Dimensions,
+    ActivityIndicator,
+    RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import styles from "./guestAnnouncements.style";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
+import { useNavigation } from "@react-navigation/native";
 
 export default function guestAnnouncements() {
+    const router = useRouter();
+    const navigation = useNavigation();
+    const { userId, userName, from } = useLocalSearchParams();
+    const screenWidth = Dimensions.get("window").width;
+    const translateX = useRef(new Animated.Value(screenWidth)).current;
+    
     const [searchText, setSearchText] = useState("");
     const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
-    const router = useRouter();
-
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [eventStatus, setEventStatus] = useState("1"); // Varsayılan olarak "1" yani Yayında
+    const [refreshing, setRefreshing] = useState(false);
 
+    // 📌 Tarih ve saat bilgisi
+    const now = new Date();
+    const currentDay = now.getDate();
+    const currentHour = now.getHours();
+    const isPointsAnnouncementActive = currentDay >= 1 && currentDay <= 5 && currentHour >= 15;
 
     const fetchAnnouncements = async () => {
         try {
             setLoading(true);
             const announcementsRef = collection(db, "announcements");
             const announcementsSnapshot = await getDocs(announcementsRef);
-    
+
             let fetchedAnnouncements = [];
-    
+
             announcementsSnapshot.forEach(doc => {
                 const announcementData = doc.data();
-                
-                // 🔹 Yalnızca aktif sekmeye göre duyuruları filtrele
-                if (announcementData.eventStatus === "1") { 
+                if (announcementData.eventStatus === "1") {
                     fetchedAnnouncements.push({
                         id: doc.id,
                         title: announcementData.Tittle || "Duyuru Başlığı Yok",
@@ -46,7 +58,7 @@ export default function guestAnnouncements() {
                     });
                 }
             });
-    
+
             setAnnouncements(fetchedAnnouncements);
             setFilteredAnnouncements(fetchedAnnouncements);
         } catch (error) {
@@ -55,101 +67,167 @@ export default function guestAnnouncements() {
             setLoading(false);
         }
     };
-    
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchAnnouncements();
+        setRefreshing(false);
+    };
 
     useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            // Prevent default behavior
+            e.preventDefault();
+
+            // Run our custom animation
+            Animated.timing(translateX, {
+                toValue: screenWidth,
+                duration: 100,
+                useNativeDriver: true,
+            }).start(() => {
+                // After animation complete, continue with navigation
+                navigation.dispatch(e.data.action);
+            });
+        });
+
+        // Initial animation when screen mounts
+        Animated.timing(translateX, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+
+        // Enable gesture navigation
+        navigation.setOptions({
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+        });
+        
         fetchAnnouncements();
-    }, []);
-    
+
+        return unsubscribe;
+    }, [navigation]);
 
     const handleSearch = (text) => {
         setSearchText(text);
+        if (!text.trim()) {
+            setFilteredAnnouncements(announcements); // Show all announcements when search is empty
+            return;
+        }
+        const searchTerm = text.toLowerCase().trim();
         const filtered = announcements.filter((announcement) =>
-            announcement.title.toLowerCase().includes(text.toLowerCase())
+            announcement.title.toLowerCase().includes(searchTerm)
         );
         setFilteredAnnouncements(filtered);
     };
 
-    const handleEdit = (announcement) => {
-        console.log("📡 Gidiyor → adminannouncementsEdit1.js: ", announcement);
-    
-        router.push({
-            pathname: "./adminannouncementsEdit1",
-            params: {
-                id: announcement.id,
-                title: announcement.title,
-                description: announcement.description,
-                startDate: announcement.startDate,
-                endDate: announcement.endDate,
-                volunterCounter: announcement.volunterCounter,
-                eventStatus: announcement.eventStatus || "1" // Varsayılan olarak "1" ata
-            }
+    const handleBack = () => {
+        Animated.timing(translateX, {
+            toValue: screenWidth,
+            duration: 100,
+            useNativeDriver: true,
+        }).start(() => {
+            router.back();
         });
     };
-    
-    
+
     return (
         <SafeAreaView style={styles.container}>
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
-                {/* Back Button */}
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
-                >
-                    <Text style={styles.backIcon}>{"<"}</Text>
-                </TouchableOpacity>
-    
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.headerText}>Duyurular</Text>
-                </View>
-    
-                {/* Search Input */}
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Duyuru ara..."
-                        placeholderTextColor="#888"
-                        value={searchText}
-                        onChangeText={handleSearch}
-                    />
-                </View>
-    
-                {/* Scrollable Announcements List */}
-                <View style={styles.scrollableList}>
-                    <ScrollView>
-                        {/* 🔄 Yükleme Durumu */}
-                        {loading ? (
-                            <Text style={styles.loadingText}>Yükleniyor...</Text>
-                        ) : filteredAnnouncements.length > 0 ? (
-                            /* 📌 Firestore'dan Gelen Duyuruları Listele */
-                            filteredAnnouncements.map((announcement) => (
-                                <View key={announcement.id} style={styles.announcementCard}>
-                                    <View style={styles.announcementDetails}>
-                                        {/* 🏷️ Duyuru Başlığı */}
-                                        <Text style={styles.announcementTitle}>{announcement.title}</Text>
-                                        {/* 📅 Duyuru Tarihleri */}
-                                        <Text style={styles.announcementDate}>
-                                            {announcement.startDate} - {announcement.endDate}
+                <Animated.View style={{ flex: 1, transform: [{ translateX }] }}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={handleBack}
+                    >
+                        <Text style={styles.backIcon}>{"<"}</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.header}>
+                        <Text style={styles.headerText}>Duyurular</Text>
+                    </View>
+
+                    <View style={styles.searchContainer}>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Duyuru ara..."
+                            placeholderTextColor="#888"
+                            value={searchText}
+                            onChangeText={handleSearch}
+                        />
+                    </View>
+
+                    <View style={styles.scrollableList}>
+                        <ScrollView
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={refreshing}
+                                    onRefresh={onRefresh}
+                                />
+                            }
+                        >
+                            {/* 📌 Katılım Puanları Kutusu */}
+                            <TouchableOpacity
+                                style={[
+                                    styles.announcementCard,
+                                    !isPointsAnnouncementActive && styles.inactiveCard
+                                ]}
+                                onPress={() => {
+                                    if (isPointsAnnouncementActive) {
+                                        router.push("./guestAnnouncements3");
+                                    }
+                                }}
+                                disabled={!isPointsAnnouncementActive}
+                            >
+                                <View style={styles.announcementDetails}>
+                                    <Text style={styles.announcementTitle}>Katılım Puanları</Text>
+                                    <Text style={styles.announcementDate}>Her ay güncellenir</Text>
+                                    <Text style={styles.announcementDescription}>
+                                        Katılım puanlarınız her ay düzenli olarak burada açıklanacaktır.
+                                    </Text>
+                                    <Text style={styles.announcementVolunterCounter}>
+                                        Bilgilendirme
+                                    </Text>
+                                    {!isPointsAnnouncementActive && (
+                                        <Text style={styles.infoText}>
+                                            Puanlar her ayın 1'i ile 5'i arasında saat 15:00'ten sonra açıklanır.
                                         </Text>
-                                        {/* 📝 Duyuru Açıklaması */}
-                                        <Text style={styles.announcementDescription}>
-                                            {announcement.description}
-                                        </Text>
-                                        {/* 👥 Gönüllü Sayısı */}
-                                        <Text style={styles.announcementVolunterCounter}>
-                                            Gönüllü Sayısı: {announcement.volunterCounter}
-                                        </Text>
-                                    </View>
+                                    )}
                                 </View>
-                            ))
-                        ) : (
-                            /* 📌 Hiç Duyuru Yoksa Gösterilecek Mesaj */
-                            <Text style={styles.emptyText}>Henüz duyuru yok.</Text>
+                            </TouchableOpacity>
+
+                            {filteredAnnouncements.length > 0 ? (
+                                filteredAnnouncements.map((announcement) => (
+                                    <View key={announcement.id} style={styles.announcementCard}>
+                                        <View style={styles.announcementDetails}>
+                                            <Text style={styles.announcementTitle}>{announcement.title}</Text>
+                                            <Text style={styles.announcementDate}>
+                                                {announcement.startDate} - {announcement.endDate}
+                                            </Text>
+                                            <Text style={styles.announcementDescription}>
+                                                {announcement.description}
+                                            </Text>
+                                            <Text style={styles.announcementVolunterCounter}>
+                                                Gönüllü Sayısı: {announcement.volunterCounter}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                ))
+                            ) : (
+                                <Text style={styles.emptyText}>Henüz duyuru yok.</Text>
+                            )}
+                        </ScrollView>
+
+                        {loading && (
+                            <View style={styles.loadingOverlay}>
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator size="large" color="#3B82F6" />
+                                    <Text style={styles.loadingText}>Veriler yükleniyor...</Text>
+                                </View>
+                            </View>
                         )}
-                    </ScrollView>
-                </View>
+                    </View>
+                </Animated.View>
             </LinearGradient>
         </SafeAreaView>
     );
-}    
+}

@@ -10,17 +10,12 @@ export default StyleSheet.create({
         flex: 1,
     },
     fixedHeader: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: "rgba(255, 255, 255, 0.9)",
-        paddingVertical: screenHeight * 0.025,
         alignItems: "center",
-        zIndex: 1000,
+        paddingVertical: screenHeight * 0.025,
+        backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        elevation: 5,
+        marginBottom: screenHeight * 0.012,
     },
     backButton: {
         position: "absolute",
@@ -40,7 +35,7 @@ export default StyleSheet.create({
     },
     scrollableContent: {
         flex: 1,
-        marginTop: screenHeight * 0.18,
+        marginTop: screenHeight * 0.025,
     },
     scrollContainer: {
         flexGrow: 1,

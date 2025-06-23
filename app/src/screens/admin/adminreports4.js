@@ -6,21 +6,40 @@ import {
     TextInput,
     ScrollView,
     TouchableOpacity,
+    ActivityIndicator,
+    RefreshControl,
+    Alert,
+    Animated,
+    Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import styles from "./adminreports4.style";
 import { collection, doc, getDoc, deleteDoc, setDoc, getDocs } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 
 export default function adminReports4() {
+    const router = useRouter();
+    const params = useLocalSearchParams();
+    const screenWidth = Dimensions.get('window').width;
+    const translateX = React.useRef(new Animated.Value(screenWidth)).current;
     const [searchText, setSearchText] = useState("");
     const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
-    const router = useRouter();
-
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
+    useEffect(() => {
+        Animated.timing(translateX, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+    }, []);
+
+    const handleBack = () => {
+        router.back();
+    };
 
     const fetchAnnouncements = async () => {
         try {
@@ -48,8 +67,10 @@ export default function adminReports4() {
             setFilteredAnnouncements(fetchedAnnouncements);
         } catch (error) {
             console.error("❌ Duyurular çekilirken hata oluştu:", error);
+            Alert.alert("Hata", "Duyurular yüklenirken bir hata oluştu.");
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
     
@@ -61,9 +82,26 @@ export default function adminReports4() {
 
     const handleSearch = (text) => {
         setSearchText(text);
-        const filtered = announcements.filter((announcement) =>
-            announcement.title.toLowerCase().includes(text.toLowerCase())
-        );
+        
+        // If search text is empty, show all announcements
+        if (!text.trim()) {
+            setFilteredAnnouncements(announcements);
+            return;
+        }
+
+        // Split search terms by spaces to handle multiple words
+        const searchTerms = text.toLowerCase().trim().split(/\s+/);
+
+        // Filter announcements based on title
+        const filtered = announcements.filter((announcement) => {
+            if (!announcement.title || typeof announcement.title !== "string") {
+                return false;
+            }
+            const announcementTitle = announcement.title.toLowerCase();
+            // Check if all search terms are found in the announcement title
+            return searchTerms.every(term => announcementTitle.includes(term));
+        });
+
         setFilteredAnnouncements(filtered);
     };
     
@@ -90,72 +128,87 @@ export default function adminReports4() {
     return (
         <SafeAreaView style={styles.container}>
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
-                {/* Back Button */}
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
+                <Animated.View
+                    style={{
+                        flex: 1,
+                        transform: [{ translateX }],
+                    }}
                 >
-                    <Text style={styles.backIcon}>{"<"}</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={handleBack}
+                    >
+                        <Text style={styles.backIcon}>{"<"}</Text>
+                    </TouchableOpacity>
 
-                {/* Header */}
-                <View style={styles.header}>
-                    <Text style={styles.headerText}>Duyurular</Text>
-                </View>
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <Text style={styles.headerText}>Duyurular</Text>
+                    </View>
 
-                {/* Search Input */}
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Duyuru ara..."
-                        placeholderTextColor="#888"
-                        value={searchText}
-                        onChangeText={handleSearch}
-                    />
-                </View>
+                    {/* Search Input */}
+                    <View style={styles.searchContainer}>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Duyuru ara..."
+                            placeholderTextColor="#888"
+                            value={searchText}
+                            onChangeText={handleSearch}
+                        />
+                    </View>
 
                     {/* Scrollable Announcements List */}
-                <View style={styles.scrollableList}>
-                    <ScrollView>
-                        {/* 🔄 Yükleme Durumu */}
+                    <View style={styles.scrollableList}>
                         {loading ? (
-                            <Text style={styles.loadingText}>Yükleniyor...</Text>
-                        ) : filteredAnnouncements.length > 0 ? (
-                            /* 📌 Firestore'dan Gelen Duyuruları Listele */
-                            filteredAnnouncements.map((announcement) => (
-                                <View key={announcement.id} style={styles.announcementCard}>
-                                    <View style={styles.announcementDetails}>
-                                        {/* 🏷️ Duyuru Başlığı */}
-                                        <Text style={styles.announcementTitle}>{announcement.title}</Text>
-                                        {/* 📅 Duyuru Tarihleri */}
-                                        <Text style={styles.announcementDate}>
-                                            {announcement.startDate} - {announcement.endDate}
-                                        </Text>
-                                        {/* 📝 Duyuru Açıklaması */}
-                                        <Text style={styles.announcementDescription}>
-                                            {announcement.description}
-                                        </Text>
-                                        {/* 👥 Gönüllü Sayısı */}
-                                        <Text style={styles.announcementVolunterCounter}>
-                                            Gönüllü Sayısı: {announcement.volunterCounter}
-                                        </Text>
-                                    </View>
-
-                                    {/* 🗑️ Sil Butonu */}
-                                    <TouchableOpacity 
-                                        style={styles.deleteButton} 
-                                        onPress={() => handleDelete(announcement.id)} // Silme fonksiyonunu çağır
-                                    >
-                                        <Text style={styles.buttonText}>Sil</Text>
-                                    </TouchableOpacity>
+                            <View style={styles.loadingOverlay}>
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator size="large" color="#3B82F6" />
+                                    <Text style={styles.loadingText}>Veriler yükleniyor...</Text>
                                 </View>
-                            ))
+                            </View>
                         ) : (
-                            /* 📌 Hiç Duyuru Yoksa Gösterilecek Mesaj */
-                            <Text style={styles.emptyText}>Henüz duyuru yok.</Text>
+                            <ScrollView
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={refreshing}
+                                        onRefresh={() => {
+                                            setRefreshing(true);
+                                            fetchAnnouncements();
+                                        }}
+                                    />
+                                }
+                            >
+                                {filteredAnnouncements.length > 0 ? (
+                                    filteredAnnouncements.map((announcement) => (
+                                        <View key={announcement.id} style={styles.announcementCard}>
+                                            <View style={styles.announcementDetails}>
+                                                <Text style={styles.announcementTitle}>{announcement.title}</Text>
+                                                <Text style={styles.announcementDate}>
+                                                    {announcement.startDate} - {announcement.endDate}
+                                                </Text>
+                                                <Text style={styles.announcementDescription}>
+                                                    {announcement.description}
+                                                </Text>
+                                                <Text style={styles.announcementVolunterCounter}>
+                                                    Gönüllü Sayısı: {announcement.volunterCounter}
+                                                </Text>
+                                            </View>
+
+                                            <TouchableOpacity 
+                                                style={styles.deleteButton} 
+                                                onPress={() => handleDelete(announcement.id)}
+                                            >
+                                                <Text style={styles.buttonText}>Sil</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))
+                                ) : (
+                                    <Text style={styles.emptyText}>Henüz duyuru yok.</Text>
+                                )}
+                            </ScrollView>
                         )}
-                    </ScrollView>
-                </View>
+                    </View>
+                </Animated.View>
             </LinearGradient>
         </SafeAreaView>
     );

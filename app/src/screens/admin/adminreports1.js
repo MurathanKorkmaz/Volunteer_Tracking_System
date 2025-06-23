@@ -9,26 +9,47 @@ import {
     TextInput,
     TouchableOpacity,
     ScrollView,
+    ActivityIndicator,
+    RefreshControl,
+    Animated,
+    Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import styles from "./adminreports1.style";
 import { collection, doc, deleteDoc, getDocs } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
+import { useLocalSearchParams } from "expo-router";
 
 export default function adminReports1() {
     const router = useRouter();
+    const params = useLocalSearchParams();
+    const screenWidth = Dimensions.get('window').width;
+    const translateX = React.useRef(new Animated.Value(screenWidth)).current;
     const [searchText, setSearchText] = useState("");
     const [filteredEvents, setFilteredEvents] = useState([]);
     const [events, setEvents] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const [sporCount, setSporCount] = useState(0);
-    const [kahvaltiCount, setKahvaltiCount] = useState(0);
+    const [toplantiCount, setToplantiCount] = useState(0);
+    const [etkinlikCount, setEtkinlikCount] = useState(0);
     const [egitimCount, setEgitimCount] = useState(0);
     const [workshopCount, setWorkshopCount] = useState(0);
 
+    useEffect(() => {
+        Animated.timing(translateX, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+    }, []);
+
+    const handleBack = () => {
+        router.back();
+    };
 
     const showDatePicker = () => {
         setDatePickerVisibility(true);
@@ -38,69 +59,84 @@ export default function adminReports1() {
         setDatePickerVisibility(false);
     };
 
-    useEffect(() => {
-        const fetchEvents = async () => {
-            try {
-                const year = selectedDate.getFullYear().toString();
-                const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
-        
-                const eventsRef = collection(db, "pastEvents", year, month);
-                const eventsSnapshot = await getDocs(eventsRef);
-                let allEvents = [];
-        
-                let spor = 0;
-                let kahvalti = 0;
-                let egitim = 0;
-                let workshop = 0;
-        
-                eventsSnapshot.forEach((doc) => {
-                    const eventData = doc.data();
-        
-                    // Kategori sayacını artır
-                    if (eventData.eventCategory === "Spor") {
-                        spor++;
-                    } else if (eventData.eventCategory === "Kahvaltı") {
-                        kahvalti++;
-                    } else if (eventData.eventCategory === "Eğitim") {
-                        egitim++;
-                    } else if (eventData.eventCategory === "Workshop") {
-                        workshop++;
-                    }
-        
-                    allEvents.push({
-                        id: doc.id,
-                        title: eventData.eventTittle,
-                        date: eventData.eventDate,
-                        applyCount: eventData.eventApplyCounter || "0",
-                        applyLimit: eventData.eventLimit || "0",
-                    });
-                });
-        
-                const totalEvents = spor + kahvalti + egitim + workshop || 1; // 0'a bölme hatasını önlemek için
-        
-                // Yüzdelik oranları hesapla
-                setSporCount((spor / totalEvents) * 100);
-                setKahvaltiCount((kahvalti / totalEvents) * 100);
-                setEgitimCount((egitim / totalEvents) * 100);
-                setWorkshopCount((workshop / totalEvents) * 100);
-        
-                setEvents(allEvents);
-                setFilteredEvents(allEvents);
-            } catch (error) {
-                console.error("Etkinlikler alınırken hata oluştu:", error);
-                Alert.alert("Hata", "Etkinlikler yüklenirken bir hata oluştu.");
-            }
-        };
+    const fetchEvents = async () => {
+        try {
+            setLoading(true);
+            const year = selectedDate.getFullYear().toString();
+            const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
+    
+            // Sadece events koleksiyonundan veri çek
+            const eventsRef = collection(db, "events", year, month);
+            const eventsSnapshot = await getDocs(eventsRef);
+            
+            let allEvents = [];
+            let toplanti = 0;
+            let etkinlik = 0;
+            let egitim = 0;
+            let workshop = 0;
+    
+            // Events koleksiyonundan verileri işle
+            eventsSnapshot.forEach((doc) => {
+                const eventData = doc.data();
                 
+                if (eventData.eventCategory === "Toplantı") toplanti++;
+                else if (eventData.eventCategory === "Etkinlik") etkinlik++;
+                else if (eventData.eventCategory === "Eğitim") egitim++;
+                else if (eventData.eventCategory === "Workshop") workshop++;
+    
+                allEvents.push({
+                    id: doc.id,
+                    title: eventData.eventTittle,
+                    date: eventData.eventDate,
+                    applyCount: eventData.eventApplyCounter || "0",
+                    applyLimit: eventData.eventLimit || "0",
+                });
+            });
+    
+            const totalEvents = toplanti + etkinlik + egitim + workshop || 1;
+    
+            setToplantiCount((toplanti / totalEvents) * 100);
+            setEtkinlikCount((etkinlik / totalEvents) * 100);
+            setEgitimCount((egitim / totalEvents) * 100);
+            setWorkshopCount((workshop / totalEvents) * 100);
+    
+            setEvents(allEvents);
+            setFilteredEvents(allEvents);
+        } catch (error) {
+            console.error("Etkinlikler alınırken hata oluştu:", error);
+            Alert.alert("Hata", "Etkinlikler yüklenirken bir hata oluştu.");
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
 
+    useEffect(() => {
         fetchEvents();
     }, [selectedDate]);
 
     const handleSearch = (text) => {
         setSearchText(text);
-        const filtered = events.filter((event) =>
-            event.title.toLowerCase().includes(text.toLowerCase())
-        );
+        
+        // If search text is empty, show all events
+        if (!text.trim()) {
+            setFilteredEvents(events);
+            return;
+        }
+
+        // Split search terms by spaces to handle multiple words
+        const searchTerms = text.toLowerCase().trim().split(/\s+/);
+
+        // Filter events based on title
+        const filtered = events.filter((event) => {
+            if (!event.title || typeof event.title !== "string") {
+                return false;
+            }
+            const eventTitle = event.title.toLowerCase();
+            // Check if all search terms are found in the event title
+            return searchTerms.every(term => eventTitle.includes(term));
+        });
+
         setFilteredEvents(filtered);
     };
 
@@ -145,6 +181,7 @@ export default function adminReports1() {
                 limitcount: event.applyLimit,
                 year: selectedDate.getFullYear().toString(),
                 month: (selectedDate.getMonth() + 1).toString().padStart(2, "0"),
+                from: "reports1"
             },
         });
     };
@@ -155,13 +192,13 @@ export default function adminReports1() {
             <View style={styles.legendContainer}>
                 <View style={styles.legendItem}>
                     <View style={[styles.legendColor, { backgroundColor: "#1E90FF" }]} />
-                    <Text style={styles.legendText}>Spor</Text>
-                    <Text style={styles.legendPercentage}>{Math.round(sporCount)}%</Text>
+                    <Text style={styles.legendText}>Toplantı</Text>
+                    <Text style={styles.legendPercentage}>{Math.round(toplantiCount)}%</Text>
                 </View>
                 <View style={styles.legendItem}>
                     <View style={[styles.legendColor, { backgroundColor: "#FFA500" }]} />
-                    <Text style={styles.legendText}>Kahvaltı</Text>
-                    <Text style={styles.legendPercentage}>{Math.round(kahvaltiCount)}%</Text>
+                    <Text style={styles.legendText}>Etkinlik</Text>
+                    <Text style={styles.legendPercentage}>{Math.round(etkinlikCount)}%</Text>
                 </View>
                 <View style={styles.legendItem}>
                     <View style={[styles.legendColor, { backgroundColor: "#32CD32" }]} />
@@ -181,8 +218,8 @@ export default function adminReports1() {
     const renderCategoryBar = () => {
         return (
             <View style={styles.categoryBarContainer}>
-                <View style={[styles.categoryBar, { width: `${sporCount}%`, backgroundColor: "#1E90FF" }]} />
-                <View style={[styles.categoryBar, { width: `${kahvaltiCount}%`, backgroundColor: "#FFA500" }]} />
+                <View style={[styles.categoryBar, { width: `${toplantiCount}%`, backgroundColor: "#1E90FF" }]} />
+                <View style={[styles.categoryBar, { width: `${etkinlikCount}%`, backgroundColor: "#FFA500" }]} />
                 <View style={[styles.categoryBar, { width: `${egitimCount}%`, backgroundColor: "#32CD32" }]} />
                 <View style={[styles.categoryBar, { width: `${workshopCount}%`, backgroundColor: "#FF4500" }]} />
             </View>
@@ -194,77 +231,103 @@ export default function adminReports1() {
     return (
         <SafeAreaView style={styles.container}>
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.push("./adminreports")}
-                >
-                    <Text style={styles.backIcon}>{"<"}</Text>
-                </TouchableOpacity>
-
-                <View style={styles.header}>
-                    <Text style={styles.headerText}>Etkinlik Raporları</Text>
-                </View>
-
-                <View style={styles.graphsContainer}>
-                    {renderCategoryLegend()}
-                    {renderCategoryBar()}
-                </View>
-
-                <TouchableOpacity onPress={showDatePicker} style={styles.datePickerButton}>
-                    <Text style={styles.datePickerText}>
-                        {selectedDate ? `${selectedDate.getFullYear()} - ${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}` : "Yıl ve Ay Seç"}
-                    </Text>
-                </TouchableOpacity>
-
-                <DateTimePickerModal
-                    isVisible={isDatePickerVisible}
-                    mode="date"
-                    display="spinner"
-                    onConfirm={(date) => {
-                        setSelectedDate(date);
-                        hideDatePicker();
+                <Animated.View
+                    style={{
+                        flex: 1,
+                        transform: [{ translateX }],
                     }}
-                    onCancel={hideDatePicker}
-                    minimumDate={new Date(2000, 0, 1)}
-                    maximumDate={new Date(2030, 11, 31)}
-                />
+                >
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={handleBack}
+                    >
+                        <Text style={styles.backIcon}>{"<"}</Text>
+                    </TouchableOpacity>
 
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Etkinlik ara..."
-                        placeholderTextColor="#888"
-                        value={searchText}
-                        onChangeText={handleSearch}
+                    <View style={styles.header}>
+                        <Text style={styles.headerText}>Etkinlik Raporları</Text>
+                    </View>
+
+                    <View style={styles.graphsContainer}>
+                        {renderCategoryLegend()}
+                        {renderCategoryBar()}
+                    </View>
+
+                    <TouchableOpacity onPress={showDatePicker} style={styles.datePickerButton}>
+                        <Text style={styles.datePickerText}>
+                            {selectedDate ? `${selectedDate.getFullYear()} - ${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}` : "Yıl ve Ay Seç"}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <DateTimePickerModal
+                        isVisible={isDatePickerVisible}
+                        mode="date"
+                        display="spinner"
+                        onConfirm={(date) => {
+                            setSelectedDate(date);
+                            hideDatePicker();
+                        }}
+                        onCancel={hideDatePicker}
+                        minimumDate={new Date(2000, 0, 1)}
+                        maximumDate={new Date(2030, 11, 31)}
+                        date={selectedDate}
                     />
-                </View>
 
-                <View style={styles.scrollableList}>
-                    <ScrollView>
-                        {filteredEvents.map((event) => (
-                            <TouchableOpacity
-                                key={event.id}
-                                style={styles.eventCard}
-                                onPress={() => handleEditEvent(event)} // Beyaz çerçeveye tıklandığında yönlendirme yap
-                            >
-                                <View style={styles.eventDetails}>
-                                    <Text style={styles.eventName}>{event.title}</Text>
-                                    <Text style={styles.eventDate}>Tarih: {event.date}</Text>
-                                    <Text style={styles.eventDate}>
-                                        Başvuru Sayısı: {event.applyCount} / {event.applyLimit}
-                                    </Text>
+                    <View style={styles.searchContainer}>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Etkinlik ara..."
+                            placeholderTextColor="#888"
+                            value={searchText}
+                            onChangeText={handleSearch}
+                        />
+                    </View>
+
+                    <View style={styles.scrollableList}>
+                        {loading ? (
+                            <View style={styles.loadingOverlay}>
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator size="large" color="#3B82F6" />
+                                    <Text style={styles.loadingText}>Veriler yükleniyor...</Text>
                                 </View>
-                                <TouchableOpacity
-                                    style={styles.deleteButton}
-                                    onPress={() => handleDeleteEvent(event.id)}
-                                >
-                                    <Text style={styles.buttonText}>Sil</Text>
-                                </TouchableOpacity>
-                            </TouchableOpacity>
-                        
-                        ))}
-                    </ScrollView>
-                </View>
+                            </View>
+                        ) : (
+                            <ScrollView
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={refreshing}
+                                        onRefresh={() => {
+                                            setRefreshing(true);
+                                            fetchEvents();
+                                        }}
+                                    />
+                                }
+                            >
+                                {filteredEvents.map((event) => (
+                                    <TouchableOpacity
+                                        key={event.id}
+                                        style={styles.eventCard}
+                                        onPress={() => handleEditEvent(event)}
+                                    >
+                                        <View style={styles.eventDetails}>
+                                            <Text style={styles.eventName}>{event.title}</Text>
+                                            <Text style={styles.eventDate}>Tarih: {event.date}</Text>
+                                            <Text style={styles.eventDate}>
+                                                Başvuru Sayısı: {event.applyCount} / {event.applyLimit}
+                                            </Text>
+                                        </View>
+                                        <TouchableOpacity
+                                            style={styles.deleteButton}
+                                            onPress={() => handleDeleteEvent(event.id)}
+                                        >
+                                            <Text style={styles.buttonText}>Sil</Text>
+                                        </TouchableOpacity>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        )}
+                    </View>
+                </Animated.View>
             </LinearGradient>
         </SafeAreaView>
     );

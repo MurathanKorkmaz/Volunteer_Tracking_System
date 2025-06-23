@@ -7,12 +7,17 @@ import {
     TouchableOpacity,
     ScrollView,
     Alert,
+    ActivityIndicator,
+    RefreshControl,
+    Animated,
+    Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { collection, getDocs, doc, deleteDoc, setDoc } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import styles from "./adminusers.style";
+import { useNavigation } from "@react-navigation/native";
 
 export default function adminUsers() {
     const [searchText, setSearchText] = useState("");
@@ -21,9 +26,15 @@ export default function adminUsers() {
     const [users, setUsers] = useState([]);
     const [requests, setRequests] = useState([]);
     const router = useRouter();
+    const navigation = useNavigation();
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const screenWidth = Dimensions.get('window').width;
+    const translateX = React.useRef(new Animated.Value(screenWidth)).current;
 
     const fetchData = async () => {
         try {
+            setLoading(true);
             // Admin verilerini al
             const adminSnapshot = await getDocs(collection(db, "admin"));
             const adminData = adminSnapshot.docs.map((doc) => ({
@@ -42,7 +53,6 @@ export default function adminUsers() {
                 Rating: doc.data().rating ? String(doc.data().rating) : "0", 
                 Turnout: doc.data().turnout ? String(doc.data().turnout) : "0", 
                 RatingCounter: doc.data().ratingCounter ? String(doc.data().ratingCounter) : "0",
-
             }));
 
             // Guest verilerini al
@@ -80,30 +90,89 @@ export default function adminUsers() {
                 Password: String(doc.data().password),
                 PhoneNumber: String(doc.data().phoneNumber),
                 isBlocked: String(doc.data().block),
-                Rating: doc.data().rating ? String(doc.data().rating) : "0", 
+                Rating: doc.data().rating ? String(doc.data().rating) : "0",
                 Turnout: doc.data().turnout ? String(doc.data().turnout) : "0",
                 RatingCounter: doc.data().ratingCounter ? String(doc.data().ratingCounter) : "0",
-                
-            }));
+                registerAt: doc.data().registerAt || "",
+            }));            
 
             setUsers([...adminData, ...guestData]);
             setRequests(requestData);
         } catch (error) {
             console.error("Veriler alınırken hata oluştu: ", error);
+            Alert.alert("Hata", "Veriler yüklenirken bir hata oluştu.");
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
         }
     };
 
-
     useEffect(() => {
+        // Gesture'ı etkinleştir ama kendi animasyonunu devre dışı bırak
+        navigation.setOptions({
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            animationEnabled: false,
+        });
+
+        // Gesture handler'ı ekle
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            // Prevent default behavior
+            e.preventDefault();
+
+            // Animasyonlu geri dönüş
+            Animated.timing(translateX, {
+                toValue: screenWidth,
+                duration: 100,
+                useNativeDriver: true,
+            }).start(() => {
+                navigation.dispatch(e.data.action);
+            });
+        });
+
+        // Animasyonu başlat
+        Animated.timing(translateX, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+
         fetchData();
-    }, []);
+
+        return unsubscribe;
+    }, [navigation]);
+
+    const handleBack = () => {
+        // Animasyonlu geri dönüş
+        Animated.timing(translateX, {
+            toValue: screenWidth,
+            duration: 100,
+            useNativeDriver: true,
+        }).start(() => {
+            router.back();
+        });
+    };
 
     const handleSearch = (text) => {
         setSearchText(text);
         const activeList = activeTab === "users" ? users : requests;
-        const filtered = activeList.filter((user) =>
-            user.Name.toLowerCase().includes(text.toLowerCase())
-        );
+        
+        // If search text is empty, show all users
+        if (!text.trim()) {
+            setFilteredUsers(activeList);
+            return;
+        }
+
+        // Split search terms by spaces to handle multiple words
+        const searchTerms = text.toLowerCase().trim().split(/\s+/);
+
+        // Filter users that match any of the search terms
+        const filtered = activeList.filter((user) => {
+            const userName = user.Name.toLowerCase();
+            // Check if all search terms are found in the user name
+            return searchTerms.every(term => userName.includes(term));
+        });
+
         setFilteredUsers(filtered);
     };
 
@@ -121,13 +190,14 @@ export default function adminUsers() {
             await setDoc(doc(db, "guests", id), {
                 email: requestData.Mail,
                 name: requestData.Name,
-                authority: "1", // Authority alanı burada güncelleniyor
+                authority: "1",
                 password: requestData.Password,
                 phoneNumber: requestData.PhoneNumber,
                 block: requestData.isBlocked,
-                rating: requestData.Rating !== undefined ? String(requestData.Rating) : "0",
-                turnout: requestData.Turnout !== undefined ? String(requestData.Turnout) : "0",
-                ratingCounter: requestData.RatingCounter !== undefined ? String(requestData.RatingCounter) : "0",
+                registerAt: requestData.registerAt,
+                rating: requestData.Rating,
+                turnout: requestData.Turnout,
+                ratingCounter: requestData.RatingCounter,
             });
 
             // Veriyi request koleksiyonundan sil
@@ -178,20 +248,28 @@ export default function adminUsers() {
             ) : (
                 <TouchableOpacity
                     style={styles.editButton}
-                    onPress={() =>
-                        router.push({
-                            pathname: "./adminusersEdit",
-                            params: {
-                                id: user.Id,
-                                name: user.Name,
-                                role: user.Role,
-                                blocked: user.isBlocked,
-                                rating: user.Rating, // Rating bilgisi eklendi
-                                turnout: user.Turnout, // Turnout bilgisi eklendi
-                                ratingCounter: user.RatingCounter,
-                            },
-                        })
-                    }
+                    onPress={() => {
+                        // Start exit animation
+                        Animated.timing(translateX, {
+                            toValue: -screenWidth,
+                            duration: 100,
+                            useNativeDriver: true,
+                        }).start(() => {
+                            router.push({
+                                pathname: "./adminusersEdit",
+                                params: {
+                                    id: user.Id,
+                                    name: user.Name,
+                                    role: user.Role,
+                                    blocked: user.isBlocked,
+                                    rating: user.Rating,
+                                    turnout: user.Turnout,
+                                    ratingCounter: user.RatingCounter,
+                                    from: "users"
+                                },
+                            });
+                        });
+                    }}
                 >
                     <Text style={styles.editButtonText}>Düzenle</Text>
                 </TouchableOpacity>
@@ -199,85 +277,110 @@ export default function adminUsers() {
         </View>
     );
 
-
     return (
         <SafeAreaView style={styles.container}>
             <LinearGradient
                 colors={["#FFFACD", "#FFD701"]}
                 style={styles.background}
             >
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
+                <Animated.View
+                    style={{
+                        flex: 1,
+                        transform: [{ translateX }],
+                    }}
                 >
-                    <Text style={styles.backIcon}>{"<"}</Text>
-                </TouchableOpacity>
-
-                <View style={styles.header}>
-                    <Text style={styles.headerText}>Kullanıcı Yönetimi</Text>
-                </View>
-
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Kullanıcı ara..."
-                        placeholderTextColor="#888"
-                        value={searchText}
-                        onChangeText={handleSearch}
-                    />
-                </View>
-
-                <View style={styles.tabContainer}>
                     <TouchableOpacity
-                        style={[
-                            styles.tabButton,
-                            activeTab === "users" && styles.tabButtonActive,
-                        ]}
-                        onPress={() => {
-                            setActiveTab("users");
-                            setSearchText("");
-                        }}
+                        style={styles.backButton}
+                        onPress={handleBack}
                     >
-                        <Text
-                            style={[
-                                styles.tabButtonText,
-                                activeTab === "users" && styles.tabButtonTextActive,
-                            ]}
-                        >
-                            Kullanıcılar
-                        </Text>
+                        <Text style={styles.backIcon}>{"<"}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[
-                            styles.tabButton,
-                            activeTab === "requests" && styles.tabButtonActive,
-                        ]}
-                        onPress={() => {
-                            setActiveTab("requests");
-                            setSearchText("");
-                        }}
-                    >
-                        <Text
-                            style={[
-                                styles.tabButtonText,
-                                activeTab === "requests" && styles.tabButtonTextActive,
-                            ]}
-                        >
-                            İstekler
-                        </Text>
-                    </TouchableOpacity>
-                </View>
 
-                <View style={styles.scrollableList}>
-                    <ScrollView>
-                        {(searchText
-                            ? filteredUsers
-                            : activeTab === "users"
-                                ? users
-                                : requests
-                        ).map(renderUser)}
-                    </ScrollView>
-                </View>
+                    <View style={styles.header}>
+                        <Text style={styles.headerText}>Kullanıcı Yönetimi</Text>
+                    </View>
+
+                    <View style={styles.searchContainer}>
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Kullanıcı ara..."
+                            placeholderTextColor="#888"
+                            value={searchText}
+                            onChangeText={handleSearch}
+                        />
+                    </View>
+
+                    <View style={styles.tabContainer}>
+                        <TouchableOpacity
+                            style={[
+                                styles.tabButton,
+                                activeTab === "users" && styles.tabButtonActive,
+                            ]}
+                            onPress={() => {
+                                setActiveTab("users");
+                                setSearchText("");
+                            }}
+                        >
+                            <Text
+                                style={[
+                                    styles.tabButtonText,
+                                    activeTab === "users" && styles.tabButtonTextActive,
+                                ]}
+                            >
+                                Kullanıcılar
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[
+                                styles.tabButton,
+                                activeTab === "requests" && styles.tabButtonActive,
+                            ]}
+                            onPress={() => {
+                                setActiveTab("requests");
+                                setSearchText("");
+                            }}
+                        >
+                            <Text
+                                style={[
+                                    styles.tabButtonText,
+                                    activeTab === "requests" && styles.tabButtonTextActive,
+                                ]}
+                            >
+                                İstekler
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.scrollableList}>
+                        {loading ? (
+                            <View style={styles.loadingOverlay}>
+                                <View style={styles.loadingContainer}>
+                                    <ActivityIndicator size="large" color="#3B82F6" />
+                                    <Text style={styles.loadingText}>Veriler yükleniyor...</Text>
+                                </View>
+                            </View>
+                        ) : (
+                            <ScrollView
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={refreshing}
+                                        onRefresh={() => {
+                                            setRefreshing(true);
+                                            fetchData();
+                                        }}
+                                    />
+                                }
+                            >
+                                {(searchText
+                                    ? filteredUsers
+                                    : activeTab === "users"
+                                        ? users
+                                        : requests
+                                ).map(renderUser)}
+                            </ScrollView>
+                        )}
+                    </View>
+                </Animated.View>
             </LinearGradient>
         </SafeAreaView>
     );

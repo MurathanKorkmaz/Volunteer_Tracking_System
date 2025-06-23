@@ -26,7 +26,7 @@ export default StyleSheet.create({
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        marginBottom: screenHeight * 0.025,
+        marginBottom: screenHeight * 0.012,
     },
     headerText: {
         fontSize: Math.min(screenWidth * 0.06, 24),
@@ -35,8 +35,8 @@ export default StyleSheet.create({
     },
     searchContainer: {
         paddingHorizontal: screenWidth * 0.05,
-        marginBottom: screenHeight * 0.025,
-        marginTop: screenHeight * 0.065,
+        marginBottom: screenHeight * 0.012,
+        marginTop: screenHeight * 0.037,
     },
     searchInput: {
         height: screenHeight * 0.065,

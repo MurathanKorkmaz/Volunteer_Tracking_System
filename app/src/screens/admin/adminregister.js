@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import styles from "./adminregister.style";
 import { db } from "../../../../configs/FirebaseConfig";
 import { collection, addDoc, doc, setDoc } from "firebase/firestore";
+import { useNavigation } from "@react-navigation/native";
 
 function validateName(name) {
     const namePattern = /^[a-zA-ZçÇğĞıİöÖşŞüÜ ]+$/;
@@ -71,6 +72,7 @@ export default function adminregister() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const router = useRouter();
+    const navigation = useNavigation();
 
     // 📌 Mevcut zamanı al ve istenen formata çevir
     const now = new Date();
@@ -87,15 +89,24 @@ export default function adminregister() {
     .toString()
     .padStart(2, "0")}`;
 
-    const translateX = useRef(new Animated.Value(1000)).current;
+    const translateY = useRef(new Animated.Value(1000)).current;
 
     useEffect(() => {
-        Animated.timing(translateX, {
+        // Gesture'ı devre dışı bırak
+        navigation.setOptions({
+            gestureEnabled: false,
+        });
+        
+        Animated.timing(translateY, {
             toValue: 0,
-            duration: 500,
+            duration: 250,
             useNativeDriver: true,
         }).start();
-    }, []);
+    }, [navigation]);
+
+    const handleBack = () => {
+        router.back();
+    };
 
     const handleRegister = async () => {
         if (!name || !email || !phone || !password || !confirmPassword) {
@@ -158,15 +169,11 @@ export default function adminregister() {
             });
 
             Alert.alert("Başarılı", "Kayıt işleminiz tamamlandı!");
-            router.push("./adminlogin");
+            router.back();
         } catch (error) {
             console.error("Error saving user data: ", error);
             Alert.alert("Hata", "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.");
         }
-    };
-
-    const handleBack = () => {
-        router.push("./adminlogin");
     };
 
     return (
@@ -181,7 +188,7 @@ export default function adminregister() {
 
                 <Animated.View
                     style={{
-                        transform: [{ translateX }],
+                        transform: [{ translateY }],
                         flex: 1,
                     }}
                 >

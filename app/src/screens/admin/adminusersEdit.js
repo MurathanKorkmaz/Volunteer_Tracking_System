@@ -1,5 +1,5 @@
 import { useRouter, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     SafeAreaView,
     View,
@@ -8,6 +8,8 @@ import {
     TouchableOpacity,
     Alert,
     ScrollView,
+    Animated,
+    Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Slider from "@react-native-community/slider";
@@ -18,6 +20,21 @@ import { db } from "../../../../configs/FirebaseConfig";
 export default function adminusersEdit() {
     const router = useRouter();
     const params = useLocalSearchParams();
+    const screenWidth = Dimensions.get('window').width;
+    // from parametresine göre giriş yönü
+    const initialX = params.from === "users" ? screenWidth : 0;
+    const translateX = useRef(new Animated.Value(initialX)).current;
+
+
+    useEffect(() => {
+        // Giriş animasyonu
+        Animated.timing(translateX, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+    }, []);
+
 
     // Router ile gelen başlangıç değerleri
     const [userId] = useState(params.id || "");
@@ -32,8 +49,6 @@ export default function adminusersEdit() {
     const [isBlocked, setIsBlocked] = useState(initialIsBlocked);
     const [participationRate, setParticipationRate] = useState(initialParticipationRate);
     const [rating, setRating] = useState(initialRating);
-
-    
 
     const handleSave = async () => {
         try {
@@ -165,8 +180,13 @@ export default function adminusersEdit() {
                 phoneNumber: userData.phoneNumber || "",
                 rating: initialRating.toString(),
                 turnout: initialParticipationRate.toString(),
-                ratingCounter: ratingCounter, // **Firestore'dan okunan ratingCounter değeri**
-                deletedAt: new Date().toISOString() // Silinme zamanı eklendi
+                ratingCounter: ratingCounter, 
+                registerAt: userData.registerAt
+                    ? typeof userData.registerAt === "string"
+                        ? userData.registerAt
+                        : userData.registerAt.toDate().toISOString()
+                    : "",
+                deletedAt: new Date().toISOString()
             };
     
             const pastRequestDocRef = doc(db, "pastrequest", userId);
@@ -195,99 +215,102 @@ export default function adminusersEdit() {
     return (
         <SafeAreaView style={styles.container}>
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
-                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                    <Text style={styles.backIcon}>{"<"}</Text>
-                </TouchableOpacity>
+                <Animated.View
+                    style={{
+                        flex: 1,
+                        transform: [{ translateX }],
+                    }}
+                >
+                    <View style={styles.header}>
+                        <Text style={styles.headerText}>Kullanıcı Düzenle</Text>
+                    </View>
+
+                    {/* ScrollView ile tüm kartları kaydırılabilir hale getiriyoruz */}
+                    <View style={styles.scrollContainer}>
+                        <ScrollView contentContainerStyle={styles.scrollWrapper}>
+                            
+                            {/* İsim-Soyisim Kartı */}
+                            <View style={styles.inputContainer1}>
+                                <Text style={styles.userNameText}>{userName}</Text>
     
-                <View style={styles.header}>
-                    <Text style={styles.headerText}>Kullanıcı Düzenle</Text>
-                </View>
+                                {/* Rol Seçimi (Admin / Guest) */}
+                                <View style={styles.roleContainer}>
+                                    <TouchableOpacity
+                                        style={[styles.roleButton, userRole === "Admin" && styles.roleButtonActive]}
+                                        onPress={() => setUserRole("Admin")}
+                                    >
+                                        <Text style={[styles.roleButtonText, userRole === "Admin" && styles.roleButtonTextActive]}>
+                                            Admin
+                                        </Text>
+                                    </TouchableOpacity>
     
-                {/* ScrollView ile tüm kartları kaydırılabilir hale getiriyoruz */}
-                <View style={styles.scrollContainer}>
-                    <ScrollView contentContainerStyle={styles.scrollWrapper}>
-                        
-                        {/* İsim-Soyisim Kartı */}
-                        <View style={styles.inputContainer1}>
-                            <Text style={styles.userNameText}>{userName}</Text>
+                                    <TouchableOpacity
+                                        style={[styles.roleButton, userRole === "Guest" && styles.roleButtonActive]}
+                                        onPress={() => setUserRole("Guest")}
+                                    >
+                                        <Text style={[styles.roleButtonText, userRole === "Guest" && styles.roleButtonTextActive]}>
+                                            Guest
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
     
-                            {/* Rol Seçimi (Admin / Guest) */}
-                            <View style={styles.roleContainer}>
+                                {/* Bloke Et / Kaldır Butonu */}
                                 <TouchableOpacity
-                                    style={[styles.roleButton, userRole === "Admin" && styles.roleButtonActive]}
-                                    onPress={() => setUserRole("Admin")}
+                                    style={[styles.blockButton, isBlocked && styles.blockButtonActive]}
+                                    onPress={() => setIsBlocked(!isBlocked)}
                                 >
-                                    <Text style={[styles.roleButtonText, userRole === "Admin" && styles.roleButtonTextActive]}>
-                                        Admin
-                                    </Text>
-                                </TouchableOpacity>
-    
-                                <TouchableOpacity
-                                    style={[styles.roleButton, userRole === "Guest" && styles.roleButtonActive]}
-                                    onPress={() => setUserRole("Guest")}
-                                >
-                                    <Text style={[styles.roleButtonText, userRole === "Guest" && styles.roleButtonTextActive]}>
-                                        Guest
+                                    <Text style={styles.blockButtonText}>
+                                        {isBlocked ? "Blokeyi Kaldır" : "Bloke Et"}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
     
-                            {/* Bloke Et / Kaldır Butonu */}
-                            <TouchableOpacity
-                                style={[styles.blockButton, isBlocked && styles.blockButtonActive]}
-                                onPress={() => setIsBlocked(!isBlocked)}
-                            >
-                                <Text style={styles.blockButtonText}>
-                                    {isBlocked ? "Blokeyi Kaldır" : "Bloke Et"}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
+                            {/* Katılım Oranı Kartı */}
+                            <View style={styles.inputContainer2}>
+                                <Text style={styles.userNameText}>Katılım Oranı: {participationRate}%</Text>
+                                <Slider
+                                    style={styles.slider}
+                                    minimumValue={0}
+                                    maximumValue={100}
+                                    step={1}
+                                    value={participationRate}
+                                    onValueChange={(value) => setParticipationRate(value)}
+                                    minimumTrackTintColor="#4CAF50"
+                                    maximumTrackTintColor="#FF5733"
+                                    thumbTintColor="#FFD700"
+                                />
+                            </View>
     
-                        {/* Katılım Oranı Kartı */}
-                        <View style={styles.inputContainer2}>
-                            <Text style={styles.userNameText}>Katılım Oranı: {participationRate}%</Text>
-                            <Slider
-                                style={styles.slider}
-                                minimumValue={0}
-                                maximumValue={100}
-                                step={1}
-                                value={participationRate}
-                                onValueChange={(value) => setParticipationRate(value)}
-                                minimumTrackTintColor="#4CAF50"
-                                maximumTrackTintColor="#FF5733"
-                                thumbTintColor="#FFD700"
-                            />
-                        </View>
-    
-                        {/* Katılım Puanı Kartı */}
-                        <View style={styles.inputContainer2}>
-                            <Text style={styles.userNameText}>Katılım Puanı: {rating}</Text>
-                            <Slider
-                                style={styles.slider}
-                                minimumValue={0}
-                                maximumValue={100}
-                                step={1}
-                                value={rating}
-                                onValueChange={(value) => setRating(value)}
-                                minimumTrackTintColor="#4CAF50"
-                                maximumTrackTintColor="#FF5733"
-                                thumbTintColor="#FFD700"
-                            />
-                        </View>
+                            {/* Katılım Puanı Kartı */}
+                            <View style={styles.inputContainer2}>
+                                <Text style={styles.userNameText}>Katılım Puanı: {rating}</Text>
+                                <Slider
+                                    style={styles.slider}
+                                    minimumValue={0}
+                                    maximumValue={100}
+                                    step={1}
+                                    value={rating}
+                                    onValueChange={(value) => setRating(value)}
+                                    minimumTrackTintColor="#4CAF50"
+                                    maximumTrackTintColor="#FF5733"
+                                    thumbTintColor="#FFD700"
+                                />
+                            </View>
 
     
-                    </ScrollView>
-                </View>
+                        </ScrollView>
+                    </View>
     
-                {/* Sil ve Kaydet Butonları (Scroll'un dışında) */}
-                <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-                    <Text style={styles.deleteButtonText}>Kullanıcıyı Sil</Text>
-                </TouchableOpacity>
+                    {/* Sil ve Kaydet Butonları (Scroll'un dışında) */}
+                    <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+                        <Text style={styles.deleteButtonText}>Kullanıcıyı Sil</Text>
+                    </TouchableOpacity>
     
-                <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                    <Text style={styles.saveButtonText}>Kaydet</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                        <Text style={styles.saveButtonText}>Kaydet</Text>
+                    </TouchableOpacity>
     
+                </Animated.View>
             </LinearGradient>
         </SafeAreaView>
     );

@@ -1,23 +1,31 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
+    SafeAreaView,
     View,
     Text,
     TextInput,
     TouchableOpacity,
     Modal,
     ScrollView,
+    Alert,
+    Animated,
+    Dimensions,
+    ActivityIndicator,
+    RefreshControl,
 } from "react-native";
-
 import { LinearGradient } from "expo-linear-gradient";
-import { Circle, Svg } from "react-native-svg"; // Grafik için SVG
-import { useRouter, useLocalSearchParams } from "expo-router"; // Router kullanımı için
+import { Circle, Svg } from "react-native-svg";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import styles from "./guestProfil1.style";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
+import { useNavigation } from "@react-navigation/native";
 
 export default function GuestProfil1() {
     const { userId, userName } = useLocalSearchParams();
-    const router = useRouter(); // Router tanımlandı
+    const router = useRouter();
+    const navigation = useNavigation();
+
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
@@ -26,92 +34,105 @@ export default function GuestProfil1() {
     const [modalVisible, setModalVisible] = useState(false);
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const screenWidth = Dimensions.get("window").width;
+    const translateX = useRef(new Animated.Value(screenWidth)).current;
 
     useEffect(() => {
-        const fetchUserData = async () => {
-            if (!userId) return;
-    
-            try {
-                const userRef = doc(db, "guests", userId);
-                const userSnap = await getDoc(userRef);
-    
-                if (userSnap.exists()) {
-                    const userData = userSnap.data();
-                    
-                    setName(userData.name || "Bilinmiyor");
-                    setEmail(userData.email || "E-posta Yok");
-                    setPhone(userData.phoneNumber || "Telefon Yok");
-                    setParticipationRate(userData.turnout ? parseInt(userData.turnout) : 0);
-                    setRatingCounter(userData.ratingCounter ? parseInt(userData.ratingCounter) : 0); // Katılım Sayısını Al
-                } else {
-                    console.log("Kullanıcı bulunamadı");
-                }
-            } catch (error) {
-                console.error("Kullanıcı verileri çekilirken hata oluştu:", error);
-            }
-        };
-    
-        fetchUserData();
-    }, [userId]); // `userId` değiştiğinde yeniden çalıştır
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            // Prevent default behavior
+            e.preventDefault();
 
-    const handleResetPassword = async () => {
-        if (newPassword.trim() === "" || confirmPassword.trim() === "") {
-            alert("Lütfen tüm alanları doldurun!");
-            return;
-        }
-    
-        if (newPassword !== confirmPassword) {
-            alert("Şifreler eşleşmiyor!");
-            return;
-        }
-    
+            // Run our custom animation
+            Animated.timing(translateX, {
+                toValue: screenWidth,
+                duration: 100,
+                useNativeDriver: true,
+            }).start(() => {
+                // After animation complete, continue with navigation
+                navigation.dispatch(e.data.action);
+            });
+        });
+
+        // Initial animation when screen mounts
+        Animated.timing(translateX, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+
+        // Enable gesture navigation
+        navigation.setOptions({
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+        });
+
+        fetchUserData();
+
+        return unsubscribe;
+    }, [userId]);
+
+    const fetchUserData = async () => {
+        if (!userId) return;
         try {
+            setLoading(true);
             const userRef = doc(db, "guests", userId);
             const userSnap = await getDoc(userRef);
-    
             if (userSnap.exists()) {
-                const currentPassword = userSnap.data().password || "";
-    
-                if (currentPassword.trim() === newPassword.trim()) {
-                    alert("Yeni şifreniz eski şifrenizle aynı olamaz!");
-                    return;
-                }
-    
-                // Şifreyi güncelle
-                await updateDoc(userRef, { password: newPassword.trim() });
-    
-                alert("Şifreniz başarıyla sıfırlandı!");
-                setModalVisible(false);
-                setNewPassword("");
-                setConfirmPassword("");
-            } else {
-                alert("Kullanıcı bulunamadı!");
+                const userData = userSnap.data();
+                setName(userData.name || "");
+                setEmail(userData.email || "");
+                setPhone(userData.phoneNumber || "");
+                setParticipationRate(userData.turnout ? parseInt(userData.turnout) : 0);
+                setRatingCounter(userData.ratingCounter ? parseInt(userData.ratingCounter) : 0);
             }
         } catch (error) {
-            console.error("Şifre güncellenirken hata oluştu:", error);
-            alert("Şifre güncellenirken bir hata oluştu.");
+            console.error("Kullanıcı verileri alınırken hata:", error);
+        } finally {
+            setLoading(false);
         }
     };
-    
 
-    const renderCircularGraph = (percentage, color, label, isPoints = false) => {
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await fetchUserData();
+        setRefreshing(false);
+    };
+
+    const handleResetPassword = async () => {
+        if (!newPassword || !confirmPassword) {
+            alert("Lütfen tüm alanları doldurun.");
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            alert("Şifreler uyuşmuyor.");
+            return;
+        }
+
+        try {
+            const userRef = doc(db, "guests", userId);
+            await updateDoc(userRef, { password: newPassword.trim() });
+            alert("Şifre başarıyla güncellendi.");
+            setModalVisible(false);
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (error) {
+            alert("Şifre güncellenirken hata oluştu.");
+        }
+    };
+
+    const renderCircularGraph = (percentage, color, label) => {
         const radius = 45;
         const circumference = 2 * Math.PI * radius;
         const progress = (percentage / 100) * circumference;
-    
+
         return (
             <View style={styles.circularGraphContainer}>
-                <Svg width={100} height={100} viewBox="0 0 100 100">
-                    {/* Arka Plan Çemberi */}
-                    <Circle
-                        cx="50"
-                        cy="50"
-                        r={radius}
-                        stroke="#E0E0E0"
-                        strokeWidth="10"
-                        fill="none"
-                    />
-                    {/* Dolum Çemberi */}
+                <Svg width={100} height={100}>
+                    <Circle cx="50" cy="50" r={radius} stroke="#E0E0E0" strokeWidth="10" fill="none" />
                     <Circle
                         cx="50"
                         cy="50"
@@ -121,125 +142,129 @@ export default function GuestProfil1() {
                         fill="none"
                         strokeDasharray={circumference}
                         strokeDashoffset={circumference - progress}
-                        strokeLinecap="round"  // Düzgün dolum için eklendi
+                        strokeLinecap="round"
                         rotation="-90"
                         origin="50,50"
                     />
                 </Svg>
-                {/* Oran veya Puan */}
-                <Text style={styles.circularGraphText}>
-                    {isPoints ? `${Math.round(percentage / 100 * 200)}` : `${percentage}%`}
-                </Text>
+                <Text style={styles.circularGraphText}>{`${percentage}%`}</Text>
                 <Text style={styles.circularGraphLabel}>{label}</Text>
             </View>
         );
     };
-    
+
+    const handleBack = () => {
+        // Animasyonlu geri dönüş
+        Animated.timing(translateX, {
+            toValue: screenWidth,
+            duration: 100,
+            useNativeDriver: true,
+        }).start(() => {
+            router.back();
+        });
+    };
 
     return (
-        <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.container}>
-            {/* Header Section */}
-            <View style={styles.header}>
-                <Text style={styles.headerText}>Profil</Text>
-            </View>
-
-            {/* Back Button */}
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <Text style={styles.backButtonText}>{"<"}</Text>
-            </TouchableOpacity>
-
-            <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                
-                {/* Dairesel Grafikler */}
-                <View style={styles.graphsContainer}>
-                    {renderCircularGraph(participationRate, "#1E90FF", "Katılım Oranı")}
-                </View>
-
-                {/* Katılım Sayısı */}
-                <View style={styles.participationCountContainer}>
-                    <Text style={styles.participationCountText}>
-                        Katıldığı Etkinlik Sayısı: {ratingCounter}
-                    </Text>
-                </View>
-
-                {/* Bilgi Alanları */}
-                <View style={styles.infoContainer}>
-                    <Text style={styles.label}>Ad Soyad</Text>
-                    <TextInput 
-                        style={styles.input} 
-                        value={name} 
-                        editable={false} 
-                    />
-
-                    <Text style={styles.label}>E-posta</Text>
-                    <TextInput 
-                        style={styles.input} 
-                        value={email} 
-                        editable={false} 
-                        keyboardType="email-address" 
-                    />
-
-                    <Text style={styles.label}>Telefon Numarası</Text>
-                    <TextInput 
-                        style={styles.input} 
-                        value={phone} 
-                        editable={false} 
-                        keyboardType="phone-pad" 
-                    />
-
-                    <Text style={styles.label}>Rozetler</Text>
-                    <View style={styles.badgesContainer}>
-                        <Text style={styles.badge}>Gönüllülük Rozeti</Text>
-                        <Text style={styles.badge}>Katılım Rozeti</Text>
+        <SafeAreaView style={{ flex: 1 }}>
+            <LinearGradient colors={["#FFFACD", "#FFD701"]} style={{ flex: 1 }}>
+                {/* ✅ Animated içerik */}
+                <Animated.View style={{ flex: 1, transform: [{ translateX }] }}>
+                    <View style={styles.header}>
+                        <Text style={styles.headerText}>Profil</Text>
                     </View>
 
-                    <TouchableOpacity
-                        style={styles.resetPasswordButton}
-                        onPress={() => setModalVisible(true)}
-                    >
-                        <Text style={styles.resetPasswordText}>Şifreyi Sıfırla</Text>
+                    <TouchableOpacity style={styles.backButton} onPress={() => handleBack()}>
+                        <Text style={styles.backButtonText}>{"<"}</Text>
                     </TouchableOpacity>
 
-                    {/* Şifre Sıfırlama Modalı */}
-                    <Modal transparent={true} visible={modalVisible} animationType="slide">
-                        <View style={styles.modalBackground}>
-                            <View style={styles.modalContent}>
-                                <Text style={styles.modalTitle}>Şifreyi Sıfırla</Text>
+                    <ScrollView 
+                        contentContainerStyle={styles.scrollViewContent}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                            />
+                        }
+                    >
+                        <View style={styles.graphsContainer}>
+                            {renderCircularGraph(participationRate, "#1E90FF", "Katılım Oranı")}
+                        </View>
 
-                                {/* Yeni Parola */}
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Yeni Parola"
-                                    placeholderTextColor="#888"
-                                    secureTextEntry={true}
-                                    value={newPassword}
-                                    onChangeText={setNewPassword}
-                                />
+                        <View style={styles.participationCountContainer}>
+                            <Text style={styles.participationCountText}>
+                                Katıldığı Etkinlik Sayısı: {ratingCounter}
+                            </Text>
+                        </View>
 
-                                {/* Yeni Parola Tekrar */}
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Yeni Parola Tekrar"
-                                    placeholderTextColor="#888"
-                                    secureTextEntry={true}
-                                    value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
-                                />
+                        <View style={styles.infoContainer}>
+                            <Text style={styles.label}>Ad Soyad</Text>
+                            <TextInput style={styles.input} value={name} editable={false} />
 
-                                {/* Butonlar */}
-                                <View style={styles.buttonContainer}>
-                                    <TouchableOpacity style={styles.resetButton} onPress={handleResetPassword}>
-                                        <Text style={styles.buttonText}>Sıfırla</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
-                                        <Text style={styles.buttonText}>İptal</Text>
-                                    </TouchableOpacity>
-                                </View>
+                            <Text style={styles.label}>E-posta</Text>
+                            <TextInput style={styles.input} value={email} editable={false} />
+
+                            <Text style={styles.label}>Telefon Numarası</Text>
+                            <TextInput style={styles.input} value={phone} editable={false} />
+
+                            <Text style={styles.label}>Rozetler</Text>
+                            <View style={styles.badgesContainer}>
+                                <Text style={styles.badge}>Gönüllülük Rozeti</Text>
+                                <Text style={styles.badge}>Katılım Rozeti</Text>
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.resetPasswordButton}
+                                onPress={() => setModalVisible(true)}
+                            >
+                                <Text style={styles.resetPasswordText}>Şifreyi Sıfırla</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </ScrollView>
+
+                    {loading && (
+                        <View style={styles.loadingOverlay}>
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="large" color="#3B82F6" />
+                                <Text style={styles.loadingText}>Veriler yükleniyor...</Text>
                             </View>
                         </View>
-                    </Modal>
+                    )}
+                </Animated.View>
+            </LinearGradient>
+
+            {/* Şifre Sıfırlama Modalı */}
+            <Modal transparent={true} visible={modalVisible} animationType="slide">
+                <View style={styles.modalBackground}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Şifreyi Sıfırla</Text>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Yeni Parola"
+                            secureTextEntry={true}
+                            value={newPassword}
+                            onChangeText={setNewPassword}
+                        />
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Yeni Parola Tekrar"
+                            secureTextEntry={true}
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                        />
+
+                        <View style={styles.buttonContainer}>
+                            <TouchableOpacity style={styles.resetButton} onPress={handleResetPassword}>
+                                <Text style={styles.buttonText}>Sıfırla</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+                                <Text style={styles.buttonText}>İptal</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
-            </ScrollView>
-        </LinearGradient>
+            </Modal>
+        </SafeAreaView>
     );
 }

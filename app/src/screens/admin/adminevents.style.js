@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions } from "react-native";
+import { StyleSheet, Dimensions, Platform } from "react-native";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -110,13 +110,11 @@ export default StyleSheet.create({
         fontWeight: "bold",
     },
     addButtonContainer: {
-        position: "absolute",
-        bottom: screenHeight * 0.037,
-        left: screenWidth * 0.05,
-        right: screenWidth * 0.05,
+        width: '100%',
         alignItems: "center",
-        zIndex: 10,
-        elevation: 5,
+        marginTop: screenHeight * 0.02,
+        marginBottom: Platform.OS === 'ios' ? screenHeight * 0.04 : screenHeight * 0.03,
+        paddingHorizontal: screenWidth * 0.05,
     },
     addButton: {
         backgroundColor: "#4CAF50",
@@ -179,7 +177,7 @@ export default StyleSheet.create({
     },
     scrollContainer: {
         flexGrow: 1,
-        paddingBottom: screenHeight * 0.037,
+        paddingBottom: Platform.OS === 'ios' ? screenHeight * 0.08 : screenHeight * 0.05,
     },
     datePickerContainer: {
         alignItems: "center",
@@ -205,5 +203,28 @@ export default StyleSheet.create({
         fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#000",
         fontWeight: "bold",
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    loadingContainer: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    loadingText: {
+        color: '#3B82F6',
+        fontSize: 16,
+        fontWeight: '600',
+        marginTop: 10,
     },
 });

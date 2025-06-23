@@ -58,7 +58,7 @@ export default StyleSheet.create({
         marginBottom: screenHeight * 0.025,
         paddingVertical: screenHeight * 0.012,
         borderRadius: 10,
-        borderWidth: 0,
+        backgroundColor: 'transparent',
     },
     tabContainer: {
         flexDirection: "row",
@@ -147,5 +147,28 @@ export default StyleSheet.create({
         color: "#FFF",
         fontWeight: "bold",
         fontSize: Math.min(screenWidth * 0.035, 14),
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    loadingContainer: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    loadingText: {
+        color: '#3B82F6',
+        fontSize: 16,
+        fontWeight: '600',
+        marginTop: 10,
     },
 });

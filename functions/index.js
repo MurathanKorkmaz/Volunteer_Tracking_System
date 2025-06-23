@@ -61,10 +61,10 @@ exports.runNowArchive = onRequest(async (req, res) => {
   res.send("🟢 Manuel: Taşıma, silme ve yayına alma işlemleri yapıldı.");
 });
 
-// ⏰ ZAMANLAYICI — Saat 00:42'de otomatik çalışacak
+// ⏰ ZAMANLAYICI — Saat 18:50'de otomatik çalışacak (her Cumartesi)
 exports.scheduledArchiveAndPublish = onSchedule(
   {
-    schedule: '50 18 * * 6',   // Her Cumartesi 18:50'de çalışacak
+    schedule: '50 18 * * 6',
     timeZone: 'Europe/Istanbul',
   },
   async () => {
@@ -72,3 +72,53 @@ exports.scheduledArchiveAndPublish = onSchedule(
   }
 );
 
+// 🔹 Katılım Puanları Kopyalama ve Sıfırlama Görevi — Her ayın 1’i saat 14:00
+exports.copyMonthlyRatings = onSchedule(
+  {
+    schedule: '0 14 1 * *', // Her ayın 1’i saat 14:00
+    timeZone: 'Europe/Istanbul',
+  },
+  async () => {
+    const now = new Date();
+    const year = now.getFullYear().toString();       // örn: "2025"
+    const month = (now.getMonth() + 1).toString().padStart(2, '0'); // örn: "06"
+
+    const guestsSnapshot = await db.collection('guests').get();
+
+    for (const doc of guestsSnapshot.docs) {
+      const guestId = doc.id;
+      const guestData = doc.data();
+
+      // 🔹 Mevcut değerleri al
+      const name = guestData.name || "İsimsiz";
+      const rating = guestData.rating || "0";
+      const ratingCounter = guestData.ratingCounter || "0";
+      const turnout = guestData.turnout || "0";
+
+      // 🔹 pointsReports altına yaz
+      await db
+        .collection('pointsReports')
+        .doc(year)
+        .collection(month)
+        .doc(guestId)
+        .set({
+          name,
+          rating,
+          ratingCounter,
+          turnout
+        });
+
+      // 🔹 guests altındaki puanları sıfırla
+      await db
+        .collection('guests')
+        .doc(guestId)
+        .update({
+          rating: "0",
+          ratingCounter: "0",
+          turnout: "0"
+        });
+    }
+
+    console.log(`✅ ${year}/${month} ➜ Puanlar kopyalandı ve sıfırlandı.`);
+  }
+);

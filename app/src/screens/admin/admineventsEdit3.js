@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     SafeAreaView,
     View,
@@ -7,8 +7,14 @@ import {
     ScrollView,
     TextInput,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
+    Keyboard,
+    Animated,
+    Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import styles from "./admineventsEdit3.style";
 import { collection, doc, getDocs, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
@@ -16,21 +22,47 @@ import { db } from "../../../../configs/FirebaseConfig";
 
 export default function adminEventsEdit3() {
     const router = useRouter();
-    const { id, year, month } = useLocalSearchParams(); // Etkinlik ID
+    const navigation = useNavigation();
+    const params = useLocalSearchParams();
+    const screenWidth = Dimensions.get('window').width;
+    const initialX = params.from === "events" ? screenWidth : 0;
+    const translateX = useRef(new Animated.Value(initialX)).current;
+
+
+    useEffect(() => {
+        Animated.timing(translateX, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+    }, []);
+
+    const handleBack = () => {
+        Animated.timing(translateX, {
+            toValue: screenWidth,
+            duration: 100,
+            useNativeDriver: true,
+        }).start(() => {
+            router.back();
+        });
+    };
 
     const [applicants, setApplicants] = useState([]);
     const [nonApplicants, setNonApplicants] = useState([]);
     const [activeTab, setActiveTab] = useState("applicants");
     const [searchText, setSearchText] = useState("");
+    const [filteredApplicants, setFilteredApplicants] = useState([]);
+    const [filteredNonApplicants, setFilteredNonApplicants] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isKeyboardVisible, setKeyboardVisible] = useState(false);
 
     useEffect(() => {
-        if (!id || !year || !month) return;
+        if (!params.id || !params.year || !params.month) return;
 
         const fetchParticipants = async () => {
             try {
-                const particantRef = collection(db, "events", year, month, id, "Particant");
-                const nonParticantRef = collection(db, "events", year, month, id, "NonParticant");
+                const particantRef = collection(db, "events", params.year, params.month, params.id, "Particant");
+                const nonParticantRef = collection(db, "events", params.year, params.month, params.id, "NonParticant");
 
                 const particantSnap = await getDocs(particantRef);
                 const nonParticantSnap = await getDocs(nonParticantRef);
@@ -59,6 +91,8 @@ export default function adminEventsEdit3() {
 
                 setApplicants(applicantsList);
                 setNonApplicants(nonApplicantsList);
+                setFilteredApplicants(applicantsList);
+                setFilteredNonApplicants(nonApplicantsList);
             } catch (error) {
                 console.error("Başvuru verileri çekilirken hata oluştu:", error);
                 Alert.alert("Hata", "Veriler çekilirken bir hata oluştu.");
@@ -68,7 +102,57 @@ export default function adminEventsEdit3() {
         };
 
         fetchParticipants();
-    }, [id, year, month]);
+    }, [params.id, params.year, params.month]);
+
+    useEffect(() => {
+        const keyboardDidShowListener = Keyboard.addListener(
+            'keyboardDidShow',
+            () => {
+                setKeyboardVisible(true);
+            }
+        );
+        const keyboardDidHideListener = Keyboard.addListener(
+            'keyboardDidHide',
+            () => {
+                setKeyboardVisible(false);
+            }
+        );
+
+        return () => {
+            keyboardDidShowListener.remove();
+            keyboardDidHideListener.remove();
+        };
+    }, []);
+
+    const handleSearch = (text) => {
+        setSearchText(text);
+        
+        // If search text is empty, show all people in both lists
+        if (!text.trim()) {
+            setFilteredApplicants(applicants);
+            setFilteredNonApplicants(nonApplicants);
+            return;
+        }
+
+        // Split search terms by spaces to handle multiple words
+        const searchTerms = text.toLowerCase().trim().split(/\s+/);
+
+        // Filter function that checks if all search terms are in the person's name
+        const filterBySearchTerms = (person) => {
+            if (!person.name || typeof person.name !== "string") {
+                return false;
+            }
+            const personName = person.name.toLowerCase();
+            return searchTerms.every(term => personName.includes(term));
+        };
+
+        // Apply filters to both lists
+        setFilteredApplicants(applicants.filter(filterBySearchTerms));
+        setFilteredNonApplicants(nonApplicants.filter(filterBySearchTerms));
+    };
+
+    // Get the current active list based on the tab
+    const currentList = activeTab === "applicants" ? filteredApplicants : filteredNonApplicants;
 
     const handleDelete = async (personId) => {
         try {
@@ -77,9 +161,9 @@ export default function adminEventsEdit3() {
             const counterField = isApplicant ? "eventApplyCounter" : "eventNonApplyCounter";
     
             // **events koleksiyonundan sil**
-            await deleteDoc(doc(db, "events", year, month, id, collectionName, personId));
+            await deleteDoc(doc(db, "events", params.year, params.month, params.id, collectionName, personId));
             // **pastEvents koleksiyonundan da sil**
-            await deleteDoc(doc(db, "pastEvents", year, month, id, collectionName, personId));
+            await deleteDoc(doc(db, "pastEvents", params.year, params.month, params.id, collectionName, personId));
     
             if (isApplicant) {
                 setApplicants((prev) => prev.filter(person => person.id !== personId));
@@ -89,7 +173,7 @@ export default function adminEventsEdit3() {
                 console.log(`Kullanıcı ${personId} Başvurmayanlar kısmında olduğu için sadece silindi, eventNonApplyCounter azaltılıyor...`);
     
                 // **Başvurmayanlar sekmesindeyse eventNonApplyCounter'ı azalt (events)**
-                const eventRef = doc(db, "events", year, month, id);
+                const eventRef = doc(db, "events", params.year, params.month, params.id);
                 const eventDoc = await getDoc(eventRef);
     
                 if (eventDoc.exists()) {
@@ -103,7 +187,7 @@ export default function adminEventsEdit3() {
                 }
     
                 // **Başvurmayanlar sekmesindeyse eventNonApplyCounter'ı azalt (pastEvents)**
-                const pastEventRef = doc(db, "pastEvents", year, month, id);
+                const pastEventRef = doc(db, "pastEvents", params.year, params.month, params.id);
                 const pastEventDoc = await getDoc(pastEventRef);
     
                 if (pastEventDoc.exists()) {
@@ -121,7 +205,7 @@ export default function adminEventsEdit3() {
             }
     
             // **Başvuranlar kısmından silindiği için değerleri güncelle (events)**
-            const eventRef = doc(db, "events", year, month, id);
+            const eventRef = doc(db, "events", params.year, params.month, params.id);
             const eventDoc = await getDoc(eventRef);
     
             if (eventDoc.exists()) {
@@ -134,7 +218,7 @@ export default function adminEventsEdit3() {
             }
     
             // **Başvuranlar kısmından silindiği için değerleri güncelle (pastEvents)**
-            const pastEventRef = doc(db, "pastEvents", year, month, id);
+            const pastEventRef = doc(db, "pastEvents", params.year, params.month, params.id);
             const pastEventDoc = await getDoc(pastEventRef);
     
             if (pastEventDoc.exists()) {
@@ -178,17 +262,17 @@ export default function adminEventsEdit3() {
             console.log(`Mevcut Rating Counter: ${currentRatingCounter}`);
     
             // **Etkinlik Score değerini çek (events)**
-            const eventDocRef = doc(db, "events", year, month, id);
+            const eventDocRef = doc(db, "events", params.year, params.month, params.id);
             const eventDocSnap = await getDoc(eventDocRef);
             const eventScore = eventDocSnap.exists() ? parseInt(eventDocSnap.data().eventScore) : 0;
     
             // **Etkinlik Score değerini çek (pastEvents)**
-            const pastEventDocRef = doc(db, "pastEvents", year, month, id);
+            const pastEventDocRef = doc(db, "pastEvents", params.year, params.month, params.id);
             const pastEventDocSnap = await getDoc(pastEventDocRef);
             const pastEventScore = pastEventDocSnap.exists() ? parseInt(pastEventDocSnap.data().eventScore) : 0;
     
             // **Total etkinlik sayısını hesapla (`eventPublish: 1` olanları say)**
-            const eventsSnapshot = await getDocs(collection(db, "events", year, month));
+            const eventsSnapshot = await getDocs(collection(db, "events", params.year, params.month));
             let totalPublishedEvents = 0;
     
             eventsSnapshot.forEach(eventDoc => {
@@ -231,11 +315,6 @@ export default function adminEventsEdit3() {
     
     
 
-    const filteredList =
-        activeTab === "applicants"
-            ? applicants.filter(person => person.name.toLowerCase().includes(searchText.toLowerCase()))
-            : nonApplicants.filter(person => person.name.toLowerCase().includes(searchText.toLowerCase()));
-
     const renderPerson = (person) => (
         <View key={person.id} style={styles.personCard}>
             <View style={styles.personDetails}>
@@ -251,69 +330,72 @@ export default function adminEventsEdit3() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
-                >
-                    <Text style={styles.backIcon}>{"<"}</Text>
-                </TouchableOpacity>
-
-                <View style={styles.header}>
-                    <Text style={styles.headerText}>Etkinlik Katılımcıları</Text>
-                </View>
-
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="İsim ara..."
-                        placeholderTextColor="#888"
-                        value={searchText}
-                        onChangeText={setSearchText}
-                    />
-                </View>
-
-                <View style={styles.tabContainer}>
-                    <TouchableOpacity
-                        style={[styles.tabButton, activeTab === "applicants" && styles.tabButtonActive1]}
-                        onPress={() => setActiveTab("applicants")}
+            <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+            >
+                <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
+                    <Animated.View
+                        style={{ flex: 1, transform: [{ translateX }] }}
                     >
-                        <Text style={[styles.tabButtonText, activeTab === "applicants" && styles.tabButtonTextActive]}>
-                            Başvuranlar
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tabButton, activeTab === "nonApplicants" && styles.tabButtonActive2]}
-                        onPress={() => setActiveTab("nonApplicants")}
-                    >
-                        <Text style={[styles.tabButtonText, activeTab === "nonApplicants" && styles.tabButtonTextActive]}>
-                            Başvurmayanlar
-                        </Text>
-                    </TouchableOpacity>
-                </View>
+                        <View style={styles.header}>
+                            <Text style={styles.headerText}>Etkinlik Detayları</Text>
+                        </View>
 
-                <View style={styles.scrollableList}>
-                    <ScrollView>
-                        {filteredList.length > 0 ? (
-                            filteredList.map(renderPerson)
-                        ) : (
-                            <Text style={styles.emptyText}>
-                                {activeTab === "applicants" ? "Başvuran bulunmamaktadır." : "Başvurmayan bulunmamaktadır."}
-                            </Text>
+                        <View style={styles.searchContainer}>
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="İsim ara..."
+                                placeholderTextColor="#888"
+                                value={searchText}
+                                onChangeText={handleSearch}
+                            />
+                        </View>
+
+                        <View style={styles.tabContainer}>
+                            <TouchableOpacity
+                                style={[styles.tabButton, activeTab === "applicants" && styles.tabButtonActive1]}
+                                onPress={() => setActiveTab("applicants")}
+                            >
+                                <Text style={[styles.tabButtonText, activeTab === "applicants" && styles.tabButtonTextActive]}>
+                                    Başvuranlar
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.tabButton, activeTab === "nonApplicants" && styles.tabButtonActive2]}
+                                onPress={() => setActiveTab("nonApplicants")}
+                            >
+                                <Text style={[styles.tabButtonText, activeTab === "nonApplicants" && styles.tabButtonTextActive]}>
+                                    Başvurmayanlar
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={[styles.scrollableList, { flex: 1 }]}>
+                            <ScrollView>
+                                {currentList.length > 0 ? (
+                                    currentList.map(renderPerson)
+                                ) : (
+                                    <Text style={styles.emptyText}>
+                                        {activeTab === "applicants" ? "Başvuran bulunmamaktadır." : "Başvurmayan bulunmamaktadır."}
+                                    </Text>
+                                )}
+                            </ScrollView>
+                        </View>
+
+                        {/* Başvuru Sayısını Gösteren Bilgilendirme Alanı - Klavye açıkken gizle */}
+                        {!isKeyboardVisible && (
+                            <View style={styles.counterContainer}>
+                                <Text style={styles.counterText}>
+                                    {activeTab === "applicants"
+                                        ? `Başvuran sayısı: ${filteredApplicants.length} kişi`
+                                        : `Başvurmayan sayısı: ${filteredNonApplicants.length} kişi`}
+                                </Text>
+                            </View>
                         )}
-                    </ScrollView>
-                </View>
-
-                {/* Başvuru Sayısını Gösteren Bilgilendirme Alanı */}
-                <View style={styles.counterContainer}>
-                    <Text style={styles.counterText}>
-                        {activeTab === "applicants"
-                            ? `Başvuran sayısı: ${applicants.length} kişi`
-                            : `Başvurmayan sayısı: ${nonApplicants.length} kişi`}
-                    </Text>
-                </View>
-
-            </LinearGradient>
+                    </Animated.View>
+                </LinearGradient>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }

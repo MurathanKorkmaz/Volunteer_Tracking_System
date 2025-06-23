@@ -35,7 +35,7 @@ export default StyleSheet.create({
     },
     searchContainer: {
         paddingHorizontal: screenWidth * 0.05,
-        marginBottom: screenHeight * 0.012,
+        marginBottom: screenHeight * 0.006,
         marginTop: screenHeight * 0.025,
     },
     searchInput: {
@@ -52,18 +52,17 @@ export default StyleSheet.create({
         shadowRadius: 4,
     },
     scrollableList: {
-        height: screenHeight * 0.65,
-        width: "90%",
+        flex: 1, // height yerine flex kullan
         marginHorizontal: "5%",
         marginBottom: screenHeight * 0.025,
         paddingVertical: screenHeight * 0.012,
         borderRadius: 10,
-        borderWidth: 0,
     },
     announcementCard: {
         backgroundColor: "#FFF",
         padding: screenWidth * 0.04,
         borderRadius: 10,
+        marginTop: screenHeight * 0.018,
         marginBottom: screenHeight * 0.018,
         elevation: 3,
         shadowColor: "#000",
@@ -181,5 +180,38 @@ export default StyleSheet.create({
     },
     tabButtonTextActive: {
         color: "#FFF",
+    },
+    inactiveCard: {
+    backgroundColor: "#E0E0E0", // gri ton
+    opacity: 0.6,
+    },
+    infoText: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+    marginTop: 6,
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    loadingContainer: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    loadingText: {
+        color: '#3B82F6',
+        fontSize: 16,
+        fontWeight: '600',
+        marginTop: 10,
     },
 });

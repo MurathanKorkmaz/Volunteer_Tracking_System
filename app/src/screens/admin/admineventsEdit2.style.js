@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions } from "react-native";
+import { StyleSheet, Dimensions, Platform } from "react-native";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -10,17 +10,12 @@ export default StyleSheet.create({
         flex: 1,
     },
     fixedHeader: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: "rgba(255, 255, 255, 0.9)",
-        paddingVertical: screenHeight * 0.025,
         alignItems: "center",
-        zIndex: 1000,
+        paddingVertical: screenHeight * 0.025,
+        backgroundColor: "rgba(255, 255, 255, 0.9)",
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
-        elevation: 5,
+        marginBottom: screenHeight * 0.012,
     },
     backButton: {
         position: "absolute",
@@ -40,11 +35,11 @@ export default StyleSheet.create({
     },
     scrollableContent: {
         flex: 1,
-        marginTop: screenHeight * 0.18,
+        marginTop: screenHeight * 0.025,
     },
     scrollContainer: {
         flexGrow: 1,
-        paddingBottom: screenHeight * 0.037,
+        paddingBottom: Platform.OS === 'ios' ? screenHeight * 0.1 : screenHeight * 0.05,
     },
     inputContainer: {
         marginHorizontal: screenWidth * 0.05,
@@ -76,19 +71,7 @@ export default StyleSheet.create({
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
-    },
-    dateInput: {
-        height: screenHeight * 0.065,
-        backgroundColor: "#F7F7F7",
-        borderRadius: 10,
-        paddingHorizontal: screenWidth * 0.04,
         justifyContent: "center",
-        marginBottom: screenHeight * 0.025,
-        elevation: 2,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
     },
     dateText: {
         fontSize: Math.min(screenWidth * 0.04, 16),
@@ -104,14 +87,16 @@ export default StyleSheet.create({
         color: "#333",
         textAlignVertical: "top",
     },
-    saveButton: {
+    buttonContainer: {
         marginHorizontal: screenWidth * 0.05,
+        marginTop: screenHeight * 0.025,
+        marginBottom: Platform.OS === 'ios' ? screenHeight * 0.05 : screenHeight * 0.03,
+    },
+    saveButton: {
         paddingVertical: screenHeight * 0.02,
         borderRadius: 10,
         backgroundColor: "#4CAF50",
         alignItems: "center",
-        marginTop: screenHeight * 0.025,
-        marginBottom: screenHeight * 0.012,
     },
     saveButtonText: {
         fontSize: Math.min(screenWidth * 0.045, 18),
