@@ -8,15 +8,23 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
-    Alert,
     Animated,
     Dimensions,
+    BackHandler,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
+import MessageModal from "../../components/MessageModal";
 import styles from "./adminreports4.style";
-import { collection, doc, getDoc, deleteDoc, setDoc, getDocs } from "firebase/firestore";
+import { collection, doc, deleteDoc, getDocs } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function adminReports4() {
     const router = useRouter();
@@ -28,6 +36,67 @@ export default function adminReports4() {
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
+
+    // MessageModal state ve tek noktadan çağırma helper'ı
+    const [msgVisible, setMsgVisible] = useState(false);
+    const [msgProps, setMsgProps] = useState({
+        title: "",
+        message: "",
+        type: "info",          // 'info' | 'success' | 'error' | 'warning'
+        primaryText: "Tamam",
+        secondaryText: undefined,
+        onPrimary: () => setMsgVisible(false),
+        onSecondary: undefined,
+        dismissable: true,
+    });
+
+    const showMessage = ({
+        title = "",
+        message = "",
+        type = "info",
+        primaryText = "Tamam",
+        onPrimary = () => setMsgVisible(false),
+        secondaryText,
+        onSecondary,
+        dismissable = true,
+    }) => {
+        setMsgProps({
+            title,
+            message,
+            type,
+            primaryText,
+            secondaryText,
+            onPrimary,
+            onSecondary,
+            dismissable,
+        });
+        setMsgVisible(true);
+    };
+
+    const handleExitApp = () => {
+        console.log("Çıkış yapılıyor...");
+        BackHandler.exitApp();
+    };
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
 
     useEffect(() => {
         Animated.timing(translateX, {
@@ -44,6 +113,7 @@ export default function adminReports4() {
     const fetchAnnouncements = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
             const announcementsRef = collection(db, "pastAnnouncements");
             const announcementsSnapshot = await getDocs(announcementsRef);
     
@@ -67,7 +137,7 @@ export default function adminReports4() {
             setFilteredAnnouncements(fetchedAnnouncements);
         } catch (error) {
             console.error("❌ Duyurular çekilirken hata oluştu:", error);
-            Alert.alert("Hata", "Duyurular yüklenirken bir hata oluştu.");
+            setHasDbError(true);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -115,18 +185,43 @@ export default function adminReports4() {
             // 🔹 Silme işleminden sonra duyuru listesini güncelle
             setAnnouncements((prev) => prev.filter((a) => a.id !== announcementId));
     
-            Alert.alert("Başarılı", "Duyuru başarıyla silindi.");
+            showMessage({
+                title: "Başarılı",
+                message: "Duyuru başarıyla silindi.",
+                type: "success",
+            });
         } catch (error) {
             console.error("❌ Duyuru silme hatası:", error);
-            Alert.alert("Hata", "Duyuru silinirken bir hata oluştu.");
+            showMessage({
+                title: "Hata",
+                message: "Duyuru silinirken bir hata oluştu.",
+                type: "error",
+            });
         }
     };
     
     
-
-    
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchAnnouncements();
+            }} />}
+
+            <MessageModal
+                visible={msgVisible}
+                title={msgProps.title}
+                message={msgProps.message}
+                type={msgProps.type}
+                primaryText={msgProps.primaryText}
+                secondaryText={msgProps.secondaryText}
+                onPrimary={msgProps.onPrimary}
+                onSecondary={msgProps.onSecondary}
+                onRequestClose={() => setMsgVisible(false)}
+                dismissable={msgProps.dismissable}
+            />
+
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View
                     style={{

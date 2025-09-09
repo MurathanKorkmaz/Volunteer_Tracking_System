@@ -73,15 +73,6 @@ export default StyleSheet.create({
         fontWeight: "bold",
         color: "#333",
     },
-    eventDate: {
-        fontSize: Math.min(screenWidth * 0.035, 14),
-        color: "#666",
-    },
-    buttonText: {
-        fontSize: Math.min(screenWidth * 0.035, 14),
-        color: "#FFF",
-        fontWeight: "bold",
-    },
     eventDetail: {
         fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#333",

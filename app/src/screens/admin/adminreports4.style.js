@@ -87,10 +87,6 @@ export default StyleSheet.create({
         color: "#666",
         marginTop: screenHeight * 0.006,
     },
-    announcementActions: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
     announcementDescription: {
         fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#555",
@@ -101,13 +97,6 @@ export default StyleSheet.create({
         fontWeight: "bold",
         color: "#007BFF",
         marginTop: screenHeight * 0.006,
-    },
-    editButton: {
-        backgroundColor: "#FFD700",
-        paddingVertical: screenHeight * 0.006,
-        paddingHorizontal: screenWidth * 0.025,
-        borderRadius: 5,
-        marginRight: screenWidth * 0.025,
     },
     deleteButton: {
         backgroundColor: "#FF5733",
@@ -155,37 +144,5 @@ export default StyleSheet.create({
         textAlign: "center",
         color: "#999",
         marginTop: screenHeight * 0.025,
-    },
-    tabContainer: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 0,
-        marginTop: screenHeight * 0.065,
-        marginHorizontal: screenWidth * 0.05,
-    },
-    tabButton: {
-        flex: 1,
-        paddingVertical: screenHeight * 0.012,
-        paddingHorizontal: screenWidth * 0.05,
-        borderWidth: 2,
-        borderColor: "#FFD700",
-        borderRadius: 10,
-        alignItems: "center",
-        marginHorizontal: screenWidth * 0.012,
-    },
-    tabButtonActive1: {
-        backgroundColor: "#4CAF50",
-    },
-    tabButtonActive2: {
-        backgroundColor: "#FF5733",
-    },
-    tabButtonText: {
-        fontSize: Math.min(screenWidth * 0.04, 16),
-        fontWeight: "bold",
-        color: "#FFD700",
-    },
-    tabButtonTextActive: {
-        color: "#FFF",
     },
 });

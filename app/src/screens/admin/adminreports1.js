@@ -1,8 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
-import Svg, { Circle } from "react-native-svg";
 import {
-    Alert,
     SafeAreaView,
     View,
     Text,
@@ -13,13 +11,21 @@ import {
     RefreshControl,
     Animated,
     Dimensions,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
+import MessageModal from "../../components/MessageModal";
 import styles from "./adminreports1.style";
 import { collection, doc, deleteDoc, getDocs } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import { useLocalSearchParams } from "expo-router";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function adminReports1() {
     const router = useRouter();
@@ -33,11 +39,67 @@ export default function adminReports1() {
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
 
+    // Kategori sayaçları için state'ler
     const [toplantiCount, setToplantiCount] = useState(0);
     const [etkinlikCount, setEtkinlikCount] = useState(0);
     const [egitimCount, setEgitimCount] = useState(0);
     const [workshopCount, setWorkshopCount] = useState(0);
+
+    const [msgVisible, setMsgVisible] = useState(false);
+    const [msgProps, setMsgProps] = useState({
+        title: "",
+        message: "",
+        type: "info",          // 'info' | 'success' | 'error' | 'warning'
+        primaryText: "Tamam",
+        secondaryText: undefined,
+        onPrimary: () => setMsgVisible(false),
+        onSecondary: undefined,
+        dismissable: true,
+    });
+
+    const showMessage = ({
+        title = "",
+        message = "",
+        type = "info",
+        primaryText = "Tamam",
+        onPrimary = () => setMsgVisible(false),
+        secondaryText,
+        onSecondary,
+        dismissable = true,
+    }) => {
+        setMsgProps({
+            title,
+            message,
+            type,
+            primaryText,
+            secondaryText,
+            onPrimary,
+            onSecondary,
+            dismissable,
+        });
+        setMsgVisible(true);
+    };
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
 
     useEffect(() => {
         Animated.timing(translateX, {
@@ -62,6 +124,7 @@ export default function adminReports1() {
     const fetchEvents = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
             const year = selectedDate.getFullYear().toString();
             const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
     
@@ -104,7 +167,7 @@ export default function adminReports1() {
             setFilteredEvents(allEvents);
         } catch (error) {
             console.error("Etkinlikler alınırken hata oluştu:", error);
-            Alert.alert("Hata", "Etkinlikler yüklenirken bir hata oluştu.");
+            setHasDbError(true);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -161,13 +224,21 @@ export default function adminReports1() {
             // 2️⃣ Ana dokümanı sil
             await deleteDoc(eventDocRef);
     
-            Alert.alert("Başarılı", "Etkinlik ve alt koleksiyonları silindi.");
+            showMessage({
+                title: "Başarılı",
+                message: "Etkinlik ve alt koleksiyonları silindi.",
+                type: "success"
+            }); 
             setEvents(events.filter((event) => event.id !== eventId));
             setFilteredEvents(filteredEvents.filter((event) => event.id !== eventId));
     
         } catch (error) {
             console.error("Etkinlik silinirken hata oluştu:", error);
-            Alert.alert("Hata", "Etkinlik silinirken bir hata oluştu.");
+            showMessage({
+                title: "Hata",
+                message: "Etkinlik silinirken bir hata oluştu.",
+                type: "error"
+            });
         }
     };
     
@@ -230,6 +301,25 @@ export default function adminReports1() {
     
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchEvents();
+            }} />}
+
+            <MessageModal
+                visible={msgVisible}
+                title={msgProps.title}
+                message={msgProps.message}
+                type={msgProps.type}
+                primaryText={msgProps.primaryText}
+                secondaryText={msgProps.secondaryText}
+                onPrimary={msgProps.onPrimary}
+                onSecondary={msgProps.onSecondary}
+                onRequestClose={() => setMsgVisible(false)}
+                dismissable={msgProps.dismissable}
+            />
+
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View
                     style={{

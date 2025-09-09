@@ -107,38 +107,6 @@ export default StyleSheet.create({
         fontWeight: "bold",
         color: "#333",
     },
-    actionButtonContainer: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginHorizontal: screenWidth * 0.05,
-        marginBottom: screenHeight * 0.025,
-    },
-    publishButton: {
-        flex: 1,
-        backgroundColor: "#4CAF50",
-        paddingVertical: screenHeight * 0.02,
-        borderRadius: 10,
-        marginHorizontal: screenWidth * 0.012,
-        alignItems: "center",
-    },
-    publishButtonText: {
-        color: "#FFF",
-        fontSize: Math.min(screenWidth * 0.04, 16),
-        fontWeight: "bold",
-    },
-    unpublishButton: {
-        flex: 1,
-        backgroundColor: "#FF5733",
-        paddingVertical: screenHeight * 0.02,
-        borderRadius: 10,
-        marginHorizontal: screenWidth * 0.012,
-        alignItems: "center",
-    },
-    unpublishButtonText: {
-        color: "#FFF",
-        fontSize: Math.min(screenWidth * 0.04, 16),
-        fontWeight: "bold",
-    },
     loadingContainer: {
         backgroundColor: "white",
         padding: 20,

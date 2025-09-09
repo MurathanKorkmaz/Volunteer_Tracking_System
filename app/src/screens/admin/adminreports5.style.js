@@ -33,47 +33,14 @@ export default StyleSheet.create({
         fontWeight: "bold",
         color: "#333",
     },
-    searchContainer: {
-        paddingHorizontal: screenWidth * 0.05,
-        marginBottom: screenHeight * 0.006,
-        marginTop: screenHeight * 0.025,
-    },
-    searchInput: {
-        height: screenHeight * 0.065,
-        backgroundColor: "#FFF",
-        borderRadius: 10,
-        paddingHorizontal: screenWidth * 0.04,
-        fontSize: Math.min(screenWidth * 0.04, 16),
-        elevation: 3,
-        color: "#333",
-    },
     scrollableList: {
-        height: "50%",
+        height: "60%",
         width: "90%",
         marginHorizontal: "5%",
         marginTop: screenHeight * 0.02,
         marginBottom: screenHeight * 0.025,
         paddingVertical: screenHeight * 0.012,
         borderRadius: 10,
-    },
-    eventCard: {
-        backgroundColor: "#FFF",
-        borderRadius: 10,
-        padding: screenWidth * 0.04,
-        marginBottom: screenHeight * 0.018,
-        elevation: 3,
-    },
-    eventDetails: {
-        flex: 1,
-    },
-    eventName: {
-        fontSize: Math.min(screenWidth * 0.04, 16),
-        fontWeight: "bold",
-        color: "#333",
-    },
-    eventDate: {
-        fontSize: Math.min(screenWidth * 0.035, 14),
-        color: "#666",
     },
     datePickerButton: {
         width: "88%",

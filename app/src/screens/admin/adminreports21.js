@@ -6,18 +6,24 @@ import {
     TouchableOpacity,
     ScrollView,
     TextInput,
-    Alert,
     ActivityIndicator,
     RefreshControl,
     Animated,
     Dimensions,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import styles from "./adminreports21.style";
-import { collection, doc, getDocs, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, doc, getDocs, getDoc } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function adminReports11() {
     const router = useRouter();
@@ -30,12 +36,12 @@ export default function adminReports11() {
     const [month, setMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, "0"));  // Bugünün ayı
 
     const [totalEvents, setTotalEvents] = useState(0); // O ayki toplam etkinlik sayısı
-
     const [progress, setProgress] = useState(0); // Oran hesaplamak için state
-
     const [searchText, setSearchText] = useState("");
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
 
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
@@ -46,6 +52,7 @@ export default function adminReports11() {
     const fetchUserEvents = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
             const cleanYear = year.trim();
             const cleanMonth = month.trim();
             const routerId = id.trim();
@@ -53,21 +60,21 @@ export default function adminReports11() {
             // 📌 Firestore'daki tüm etkinlikleri getir
             const eventsRef = collection(db, "pastEvents", cleanYear, cleanMonth);
             const eventsSnapshot = await getDocs(eventsRef);
-    
+
             let matchedEvents = [];
             let totalEventCount = eventsSnapshot.docs.length;
-    
+
             for (const eventDoc of eventsSnapshot.docs) {
                 const eventId = eventDoc.id; // Etkinliğin ID'si
                 
                 // 📌 `Particant` koleksiyonunda kullanıcının olup olmadığını kontrol et
                 const particantRef = doc(db, "pastEvents", cleanYear, cleanMonth, eventId, "Particant", routerId);
                 const particantSnap = await getDoc(particantRef);
-    
+
                 
                 if (particantSnap.exists()) {
                     const eventData = eventDoc.data();
-    
+
                     matchedEvents.push({
                         id: eventDoc.id,
                         title: eventData.eventTittle || "Bilinmeyen Etkinlik",
@@ -95,13 +102,31 @@ export default function adminReports11() {
             }
         } catch (error) {
             console.error("🔥 Firestore'dan veri çekilirken hata oluştu:", error.message);
-            Alert.alert("Hata", `Etkinlik verileri yüklenirken hata oluştu: ${error.message}`);
+            setHasDbError(true);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
     
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
+
     useEffect(() => {
         if (!id || !year || !month) return;
         fetchUserEvents();
@@ -154,6 +179,11 @@ export default function adminReports11() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchUserEvents();
+            }} />}
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View
                     style={{

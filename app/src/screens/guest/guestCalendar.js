@@ -10,14 +10,24 @@ import {
     ActivityIndicator,
     RefreshControl,
     ScrollView,
+    BackHandler,
+    LogBox,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { collection, getDocs } from "firebase/firestore";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
+import { collection, getDocs, doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import styles from "./guestCalendar.style";
 import { useNavigation } from "@react-navigation/native";
+import MaintenanceModal from "../../components/MaintenanceModal";
+import BlockModal from "../../components/BlockModal";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function GuestCalendar() {
     const router = useRouter();
@@ -25,6 +35,11 @@ export default function GuestCalendar() {
     const { userId, from } = useLocalSearchParams();
     const screenWidth = Dimensions.get("window").width;
     const translateX = useRef(new Animated.Value(screenWidth)).current;
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
+    const [isBlocked, setIsBlocked] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
+
     const [markedDates, setMarkedDates] = useState({});
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [isModalVisible, setModalVisible] = useState(false);
@@ -37,7 +52,70 @@ export default function GuestCalendar() {
     const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
+
+    // Bakım modu kontrolü için useEffect
+    useEffect(() => {
+        const docRef = doc(db, "appSettings", "status");
+        
+        // Firestore'dan gerçek zamanlı dinleme başlat
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                console.log("Bakım modu değişikliği algılandı:", docSnap.data());
+                setMaintenanceMode(docSnap.data().maintenanceMode === true);
+            }
+        }, (error) => {
+            console.error("Maintenance mode listener error:", error);
+        });
+
+        // Cleanup: listener'ı kapat
+        return () => unsubscribe();
+    }, []);
+
+    // maintenanceMode state'ini izle
+    useEffect(() => {
+        console.log("maintenanceMode state değişti:", maintenanceMode);
+    }, [maintenanceMode]);
+
+    // Block durumu kontrolü için useEffect
+    useEffect(() => {
+        if (!userId) return;
+
+        const userDocRef = doc(db, "guests", userId);
+        
+        const unsubscribeBlock = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const userData = docSnap.data();
+                const isUserBlocked = userData.block === "1";
+                setIsBlocked(isUserBlocked);
+            }
+        }, (error) => {
+            console.error("Block status listener error:", error);
+        });
+
+        return () => unsubscribeBlock();
+    }, [userId]);
+
+    useEffect(() => {
         const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            // Eğer kullanıcı bloklu ise navigation'ı engelle
+            if (isBlocked) return;
+            
             // Prevent default behavior
             e.preventDefault();
 
@@ -72,7 +150,7 @@ export default function GuestCalendar() {
         }, 100);
 
         return unsubscribe;
-    }, [navigation]);
+    }, [navigation, isBlocked]);
 
     useEffect(() => {
         if (isCalendarReady) {
@@ -87,6 +165,7 @@ export default function GuestCalendar() {
         
         try {
             setLoading(true);
+            setHasDbError(false);
             setMarkedDates({}); // Mevcut işaretleri temizle
     
             const year = selectedYear.toString();
@@ -137,6 +216,7 @@ export default function GuestCalendar() {
             setLoading(false);
         } catch (error) {
             console.error("❌ Etkinlikler yüklenirken hata oluştu:", error);
+            setHasDbError(true);
             setLoading(false);
         }
     };
@@ -176,6 +256,12 @@ export default function GuestCalendar() {
     };
 
     const handleBack = () => {
+        // Eğer kullanıcı bloklu ise geri dönüşü engelle
+        if (isBlocked) {
+            handleBlockExit();
+            return;
+        }
+        
         Animated.timing(translateX, {
             toValue: screenWidth,
             duration: 100,
@@ -185,8 +271,30 @@ export default function GuestCalendar() {
         });
     };
 
+    const handleExitApp = () => {
+        console.log("Çıkış yapılıyor...");
+        BackHandler.exitApp();
+    };
+
+    // Block durumunda çıkış işlemi
+    const handleBlockExit = () => {
+        // Navigation stack'i tamamen temizle ve ana sayfaya git
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'index' }], // Ana route'a dön
+        });
+    };
+
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchEvents();
+            }} />}
+            <MaintenanceModal visible={maintenanceMode} onExit={handleExitApp} />
+            <BlockModal visible={isBlocked} onClose={handleBlockExit} />
+
             <LinearGradient
                 colors={["#FFFACD", "#FFD701"]}
                 style={styles.background}

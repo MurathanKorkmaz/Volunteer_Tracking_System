@@ -1,7 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
-    Alert,
     SafeAreaView,
     View,
     Text,
@@ -12,12 +11,19 @@ import {
     RefreshControl,
     Animated,
     Dimensions,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
 import styles from "./adminreports3.style";
-import { collection, doc, deleteDoc, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import { useLocalSearchParams } from "expo-router";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function adminReports3() {
     const router = useRouter();
@@ -29,6 +35,26 @@ export default function adminReports3() {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
 
     useEffect(() => {
         Animated.timing(translateX, {
@@ -45,6 +71,7 @@ export default function adminReports3() {
     const fetchGuests = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
             const guestsRef = collection(db, "pastrequest");
             const guestsSnapshot = await getDocs(guestsRef);
             let allGuests = [];
@@ -76,7 +103,7 @@ export default function adminReports3() {
             setFilteredEvents(allGuests);
         } catch (error) {
             console.error("Misafirler alınırken hata oluştu:", error);
-            Alert.alert("Hata", "Misafirler yüklenirken bir hata oluştu.");
+            setHasDbError(true);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -127,6 +154,11 @@ export default function adminReports3() {
     
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchGuests();
+            }} />}
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View
                     style={{

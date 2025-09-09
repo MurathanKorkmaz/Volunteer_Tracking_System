@@ -1,5 +1,5 @@
 {
-  "name": "murathan1",
+  "name": "sitoded",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -18,8 +18,9 @@
     "newArchEnabled": true
   },
   "dependencies": {
-    "@expo/vector-icons": "^14.0.2",
+    "@expo/vector-icons": "^14.1.0",
     "@react-native-community/datetimepicker": "^8.2.0",
+    "@react-native-community/netinfo": "^11.4.1",
     "@react-native-community/slider": "^4.5.5",
     "@react-native-firebase/analytics": "^21.6.1",
     "@react-native-firebase/auth": "^21.6.1",

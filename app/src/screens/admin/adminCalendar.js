@@ -3,23 +3,26 @@ import {
     SafeAreaView,
     View,
     Text,
-    ScrollView,
-    TextInput,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
-    RefreshControl,
     Animated,
     Dimensions,
     Modal,
+    LogBox,
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import styles from "./adminCalendar.style";
 import { useNavigation } from "@react-navigation/native";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function AdminCalendar() {
     const router = useRouter();
@@ -27,6 +30,7 @@ export default function AdminCalendar() {
     const params = useLocalSearchParams();
     const screenWidth = Dimensions.get('window').width;
     const translateX = React.useRef(new Animated.Value(params.from === "panel1" ? screenWidth : -screenWidth)).current;
+
     const [markedDates, setMarkedDates] = useState({});
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [isModalVisible, setModalVisible] = useState(false);
@@ -36,6 +40,26 @@ export default function AdminCalendar() {
     );
     const [loading, setLoading] = useState(true);
     const [isCalendarReady, setIsCalendarReady] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
 
     useEffect(() => {
         navigation.setOptions({
@@ -92,6 +116,7 @@ export default function AdminCalendar() {
 
         try {
             setLoading(true);
+            setHasDbError(false);
             const year = selectedYear.toString();
             const month = selectedMonth.toString().padStart(2, "0");
 
@@ -130,6 +155,7 @@ export default function AdminCalendar() {
             setLoading(false);
         } catch (error) {
             console.error("Etkinlikler yüklenirken hata oluştu:", error);
+            setHasDbError(true);
             setLoading(false);
         }
     };
@@ -159,6 +185,11 @@ export default function AdminCalendar() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchEvents();
+            }} />}
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View
                     style={{

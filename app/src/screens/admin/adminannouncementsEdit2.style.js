@@ -64,38 +64,6 @@ export default StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 2,
     },
-    tabContainer: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 0,
-        marginTop: screenHeight * 0.075,
-        marginHorizontal: screenWidth * 0.05,
-    },
-    tabButton: {
-        flex: 1,
-        paddingVertical: screenHeight * 0.012,
-        paddingHorizontal: screenWidth * 0.05,
-        borderWidth: 2,
-        borderColor: "#FFD700",
-        borderRadius: 10,
-        alignItems: "center",
-        marginHorizontal: screenWidth * 0.012,
-    },
-    tabButtonActive1: {
-        backgroundColor: "#4CAF50",
-    },
-    tabButtonActive2: {
-        backgroundColor: "#FF5733",
-    },
-    tabButtonText: {
-        fontSize: Math.min(screenWidth * 0.04, 16),
-        fontWeight: "bold",
-        color: "#FFD700",
-    },
-    tabButtonTextActive: {
-        color: "#FFF",
-    },
     textArea: {
         height: screenHeight * 0.13,
         backgroundColor: "#F7F7F7",
@@ -120,32 +88,6 @@ export default StyleSheet.create({
     dateText: {
         fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#333",
-    },
-    filePickerContainer: {
-        marginHorizontal: screenWidth * 0.05,
-        marginTop: screenHeight * 0.025,
-        padding: screenWidth * 0.05,
-        backgroundColor: "#FFF",
-        borderRadius: 10,
-        elevation: 3,
-    },
-    filePickerButton: {
-        backgroundColor: "#FF5733",
-        paddingVertical: screenHeight * 0.012,
-        paddingHorizontal: screenWidth * 0.04,
-        borderRadius: 10,
-        alignItems: "center",
-        marginBottom: screenHeight * 0.012,
-    },
-    filePickerButtonText: {
-        fontSize: Math.min(screenWidth * 0.04, 16),
-        color: "#FFF",
-        fontWeight: "bold",
-    },
-    selectedFileText: {
-        fontSize: Math.min(screenWidth * 0.035, 14),
-        color: "#333",
-        marginTop: screenHeight * 0.012,
     },
     saveButton: {
         marginHorizontal: screenWidth * 0.05,
@@ -196,5 +138,32 @@ export default StyleSheet.create({
         flexGrow: 1,
         paddingVertical: 0,
         paddingHorizontal: 0,
+    },
+    loadingOverlay: {
+        flex: 1,
+        height: 500,
+        backgroundColor: 'transparent',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingContainer: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    loadingText: {
+        color: '#3B82F6',
+        fontSize: 16,
+        fontWeight: '600',
+        marginTop: 10,
     },
 });

@@ -52,6 +52,7 @@ export default StyleSheet.create({
     scrollableList: {
         flex: 1,
         width: "100%",
+        paddingTop: screenHeight * 0.01,
         paddingHorizontal: screenWidth * 0.05,
         paddingBottom: screenHeight * 0.02,
     },
@@ -78,38 +79,6 @@ export default StyleSheet.create({
         marginTop: 10,
         fontSize: 16,
         color: "#333",
-    },
-    eventCard: {
-        backgroundColor: "#FFF",
-        borderRadius: 10,
-        padding: screenWidth * 0.04,
-        marginBottom: screenHeight * 0.018,
-        elevation: 3,
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-    },
-    eventDetails: {
-        flex: 1,
-    },
-    eventName: {
-        fontSize: Math.min(screenWidth * 0.04, 16),
-        fontWeight: "bold",
-        color: "#333",
-    },
-    eventDate: {
-        fontSize: Math.min(screenWidth * 0.035, 14),
-        color: "#666",
-    },
-    buttonText: {
-        fontSize: Math.min(screenWidth * 0.035, 14),
-        color: "#FFF",
-        fontWeight: "bold",
-    },
-    eventDetail: {
-        fontSize: Math.min(screenWidth * 0.035, 14),
-        color: "#333",
-        marginTop: screenHeight * 0.005,
     },
     card: {
         backgroundColor: "#FFF",

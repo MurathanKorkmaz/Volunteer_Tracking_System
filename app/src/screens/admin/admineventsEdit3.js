@@ -6,19 +6,28 @@ import {
     TouchableOpacity,
     ScrollView,
     TextInput,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     Keyboard,
     Animated,
     Dimensions,
+    ActivityIndicator,
+    RefreshControl,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
+import MessageModal from "../../components/MessageModal";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import styles from "./admineventsEdit3.style";
 import { collection, doc, getDocs, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function adminEventsEdit3() {
     const router = useRouter();
@@ -27,7 +36,6 @@ export default function adminEventsEdit3() {
     const screenWidth = Dimensions.get('window').width;
     const initialX = params.from === "events" ? screenWidth : 0;
     const translateX = useRef(new Animated.Value(initialX)).current;
-
 
     useEffect(() => {
         Animated.timing(translateX, {
@@ -38,13 +46,7 @@ export default function adminEventsEdit3() {
     }, []);
 
     const handleBack = () => {
-        Animated.timing(translateX, {
-            toValue: screenWidth,
-            duration: 100,
-            useNativeDriver: true,
-        }).start(() => {
-            router.back();
-        });
+        router.back();
     };
 
     const [applicants, setApplicants] = useState([]);
@@ -54,55 +56,114 @@ export default function adminEventsEdit3() {
     const [filteredApplicants, setFilteredApplicants] = useState([]);
     const [filteredNonApplicants, setFilteredNonApplicants] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
     const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+    const [hasDbError, setHasDbError] = useState(false);
 
-    useEffect(() => {
+    const [msgVisible, setMsgVisible] = useState(false);
+    const [msgProps, setMsgProps] = useState({
+        title: "",
+        message: "",
+        type: "info",          // 'info' | 'success' | 'error' | 'warning'
+        primaryText: "Tamam",
+        secondaryText: undefined,
+        onPrimary: () => setMsgVisible(false),
+        onSecondary: undefined,
+        dismissable: true,
+    });
+
+    const showMessage = ({
+        title = "",
+        message = "",
+        type = "info",
+        primaryText = "Tamam",
+        onPrimary = () => setMsgVisible(false),
+        secondaryText,
+        onSecondary,
+        dismissable = true,
+    }) => {
+        setMsgProps({
+            title,
+            message,
+            type,
+            primaryText,
+            secondaryText,
+            onPrimary,
+            onSecondary,
+            dismissable,
+        });
+        setMsgVisible(true);
+    };
+
+    const fetchParticipants = async () => {
         if (!params.id || !params.year || !params.month) return;
 
-        const fetchParticipants = async () => {
-            try {
-                const particantRef = collection(db, "events", params.year, params.month, params.id, "Particant");
-                const nonParticantRef = collection(db, "events", params.year, params.month, params.id, "NonParticant");
+        try {
+            setLoading(true);
+            setHasDbError(false);
+            const particantRef = collection(db, "events", params.year, params.month, params.id, "Particant");
+            const nonParticantRef = collection(db, "events", params.year, params.month, params.id, "NonParticant");
 
-                const particantSnap = await getDocs(particantRef);
-                const nonParticantSnap = await getDocs(nonParticantRef);
+            const particantSnap = await getDocs(particantRef);
+            const nonParticantSnap = await getDocs(nonParticantRef);
 
-                const applicantsList = particantSnap.docs.map(doc => {
-                    const appliedAt = doc.data().appliedAt || "Bilinmiyor";
-                    const [date, time] = appliedAt.includes("--") ? appliedAt.split("--") : [appliedAt, ""];
-                    return {
-                        id: doc.id,
-                        name: doc.data().Name || "Bilinmeyen",
-                        appliedDate: date,
-                        appliedTime: time
-                    };
-                });
+            const applicantsList = particantSnap.docs.map(doc => {
+                const appliedAt = doc.data().appliedAt || "Bilinmiyor";
+                const [date, time] = appliedAt.includes("--") ? appliedAt.split("--") : [appliedAt, ""];
+                return {
+                    id: doc.id,
+                    name: doc.data().Name || "Bilinmeyen",
+                    appliedDate: date,
+                    appliedTime: time
+                };
+            });
 
-                const nonApplicantsList = nonParticantSnap.docs.map(doc => {
-                    const appliedAt = doc.data().appliedAt || "Bilinmiyor";
-                    const [date, time] = appliedAt.includes("--") ? appliedAt.split("--") : [appliedAt, ""];
-                    return {
-                        id: doc.id,
-                        name: doc.data().Name || "Bilinmeyen",
-                        appliedDate: date,
-                        appliedTime: time
-                    };
-                });
+            const nonApplicantsList = nonParticantSnap.docs.map(doc => {
+                const appliedAt = doc.data().appliedAt || "Bilinmiyor";
+                const [date, time] = appliedAt.includes("--") ? appliedAt.split("--") : [appliedAt, ""];
+                return {
+                    id: doc.id,
+                    name: doc.data().Name || "Bilinmeyen",
+                    appliedDate: date,
+                    appliedTime: time
+                };
+            });
 
-                setApplicants(applicantsList);
-                setNonApplicants(nonApplicantsList);
-                setFilteredApplicants(applicantsList);
-                setFilteredNonApplicants(nonApplicantsList);
-            } catch (error) {
-                console.error("Başvuru verileri çekilirken hata oluştu:", error);
-                Alert.alert("Hata", "Veriler çekilirken bir hata oluştu.");
-            } finally {
-                setLoading(false);
-            }
-        };
+            setApplicants(applicantsList);
+            setNonApplicants(nonApplicantsList);
+            setFilteredApplicants(applicantsList);
+            setFilteredNonApplicants(nonApplicantsList);
+        } catch (error) {
+            console.error("Başvuru verileri çekilirken hata oluştu:", error);
+            setHasDbError(true);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
 
+    useEffect(() => {
         fetchParticipants();
     }, [params.id, params.year, params.month]);
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
 
     useEffect(() => {
         const keyboardDidShowListener = Keyboard.addListener(
@@ -156,13 +217,11 @@ export default function adminEventsEdit3() {
 
     const handleDelete = async (personId) => {
         try {
-            const isApplicant = activeTab === "applicants"; // **Başvuranlar (Particant) kısmında mı kontrol et**
+            const isApplicant = activeTab === "applicants";
             const collectionName = isApplicant ? "Particant" : "NonParticant";
             const counterField = isApplicant ? "eventApplyCounter" : "eventNonApplyCounter";
     
-            // **events koleksiyonundan sil**
             await deleteDoc(doc(db, "events", params.year, params.month, params.id, collectionName, personId));
-            // **pastEvents koleksiyonundan da sil**
             await deleteDoc(doc(db, "pastEvents", params.year, params.month, params.id, collectionName, personId));
     
             if (isApplicant) {
@@ -172,7 +231,6 @@ export default function adminEventsEdit3() {
     
                 console.log(`Kullanıcı ${personId} Başvurmayanlar kısmında olduğu için sadece silindi, eventNonApplyCounter azaltılıyor...`);
     
-                // **Başvurmayanlar sekmesindeyse eventNonApplyCounter'ı azalt (events)**
                 const eventRef = doc(db, "events", params.year, params.month, params.id);
                 const eventDoc = await getDoc(eventRef);
     
@@ -186,7 +244,6 @@ export default function adminEventsEdit3() {
                     }
                 }
     
-                // **Başvurmayanlar sekmesindeyse eventNonApplyCounter'ı azalt (pastEvents)**
                 const pastEventRef = doc(db, "pastEvents", params.year, params.month, params.id);
                 const pastEventDoc = await getDoc(pastEventRef);
     
@@ -200,11 +257,14 @@ export default function adminEventsEdit3() {
                     }
                 }
     
-                Alert.alert("Başarılı", "Kullanıcı başarıyla silindi.");
+                showMessage({
+                    title: "Başarılı",
+                    message: "Kullanıcı başarıyla silindi.",
+                    type: "success",
+                });
                 return;
             }
     
-            // **Başvuranlar kısmından silindiği için değerleri güncelle (events)**
             const eventRef = doc(db, "events", params.year, params.month, params.id);
             const eventDoc = await getDoc(eventRef);
     
@@ -217,7 +277,6 @@ export default function adminEventsEdit3() {
                 }
             }
     
-            // **Başvuranlar kısmından silindiği için değerleri güncelle (pastEvents)**
             const pastEventRef = doc(db, "pastEvents", params.year, params.month, params.id);
             const pastEventDoc = await getDoc(pastEventRef);
     
@@ -230,14 +289,12 @@ export default function adminEventsEdit3() {
                 }
             }
     
-            // **Silinen kişinin Firestore'daki koleksiyonunu belirle**
-            let userCollection = "guests"; // Varsayılan olarak guests koleksiyonunu kontrol et
+            let userCollection = "guests";
             let userDocRef = doc(db, "guests", personId);
             let userDoc = await getDoc(userDocRef);
     
             console.log(`Kullanıcı ${personId} için Guests koleksiyonunda arama yapılıyor...`);
     
-            // Eğer Guests koleksiyonunda bulunamazsa Admin koleksiyonunda arama yap
             if (!userDoc.exists()) {
                 console.log(`Kullanıcı ${personId} Guests koleksiyonunda bulunamadı. Admin koleksiyonunda aranıyor...`);
                 userCollection = "admin";
@@ -247,13 +304,16 @@ export default function adminEventsEdit3() {
     
             if (!userDoc.exists()) {
                 console.error(`Hata: Kullanıcı ${personId} veritabanında bulunamadı.`);
-                Alert.alert("Hata", "Kullanıcı bulunamadı.");
+                showMessage({
+                    title: "Hata",
+                    message: "Kullanıcı bulunamadı.",
+                    type: "error",
+                });
                 return;
             } else {
                 console.log(`Kullanıcı ${personId} bulundu. Koleksiyon: ${userCollection}`);
             }
     
-            // **Mevcut Kullanıcı Değerlerini Al**
             const userData = userDoc.data();
             const currentRating = userData.rating ? parseInt(userData.rating) : 0;
             const currentRatingCounter = userData.ratingCounter ? parseInt(userData.ratingCounter) : 0;
@@ -261,17 +321,14 @@ export default function adminEventsEdit3() {
             console.log(`Mevcut Rating: ${currentRating}`);
             console.log(`Mevcut Rating Counter: ${currentRatingCounter}`);
     
-            // **Etkinlik Score değerini çek (events)**
             const eventDocRef = doc(db, "events", params.year, params.month, params.id);
             const eventDocSnap = await getDoc(eventDocRef);
             const eventScore = eventDocSnap.exists() ? parseInt(eventDocSnap.data().eventScore) : 0;
     
-            // **Etkinlik Score değerini çek (pastEvents)**
             const pastEventDocRef = doc(db, "pastEvents", params.year, params.month, params.id);
             const pastEventDocSnap = await getDoc(pastEventDocRef);
             const pastEventScore = pastEventDocSnap.exists() ? parseInt(pastEventDocSnap.data().eventScore) : 0;
     
-            // **Total etkinlik sayısını hesapla (`eventPublish: 1` olanları say)**
             const eventsSnapshot = await getDocs(collection(db, "events", params.year, params.month));
             let totalPublishedEvents = 0;
     
@@ -285,7 +342,6 @@ export default function adminEventsEdit3() {
             console.log(`Event Score: ${eventScore}`);
             console.log(`Total Published Events: ${totalPublishedEvents}`);
     
-            // **Yeni Değerleri Hesapla**
             const newRating = Math.max(0, currentRating - eventScore);
             const newRatingCounter = Math.max(0, currentRatingCounter - 1);
             const newTurnout = totalPublishedEvents > 0 ? parseInt((newRatingCounter / totalPublishedEvents) * 100) : 0;
@@ -294,7 +350,6 @@ export default function adminEventsEdit3() {
             console.log(`Yeni Rating Counter: ${newRatingCounter}`);
             console.log(`Yeni Turnout: ${newTurnout}`);
     
-            // **Firestore'a Güncellenmiş Değerleri Kaydet**
             try {
                 await updateDoc(userDocRef, {
                     rating: newRating.toString(),
@@ -306,15 +361,21 @@ export default function adminEventsEdit3() {
                 console.error("Firestore Güncelleme Hatası:", error);
             }
     
-            Alert.alert("Başarılı", "Kullanıcı başarıyla silindi ve başvuru bilgileri güncellendi.");
+            showMessage({
+                title: "Başarılı",
+                message: "Kullanıcı başarıyla silindi ve başvuru bilgileri güncellendi.",
+                type: "success",
+            });
         } catch (error) {
             console.error("Silme işlemi başarısız:", error);
-            Alert.alert("Hata", "Silme işlemi başarısız oldu.");
+            showMessage({
+                title: "Hata",
+                message: "Silme işlemi başarısız oldu.",
+                type: "error",
+            });
         }
     };
     
-    
-
     const renderPerson = (person) => (
         <View key={person.id} style={styles.personCard}>
             <View style={styles.personDetails}>
@@ -330,10 +391,29 @@ export default function adminEventsEdit3() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchParticipants();
+            }} />}
             <KeyboardAvoidingView 
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
             >
+
+            <MessageModal
+                visible={msgVisible}
+                title={msgProps.title}
+                message={msgProps.message}
+                type={msgProps.type}
+                primaryText={msgProps.primaryText}
+                secondaryText={msgProps.secondaryText}
+                onPrimary={msgProps.onPrimary}
+                onSecondary={msgProps.onSecondary}
+                onRequestClose={() => setMsgVisible(false)}
+                dismissable={msgProps.dismissable}
+            />
+            
                 <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                     <Animated.View
                         style={{ flex: 1, transform: [{ translateX }] }}
@@ -341,6 +421,11 @@ export default function adminEventsEdit3() {
                         <View style={styles.header}>
                             <Text style={styles.headerText}>Etkinlik Detayları</Text>
                         </View>
+
+                        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+                            <Text style={styles.backIcon}>{"<"}</Text>
+                        </TouchableOpacity>
+                        
 
                         <View style={styles.searchContainer}>
                             <TextInput
@@ -372,8 +457,26 @@ export default function adminEventsEdit3() {
                         </View>
 
                         <View style={[styles.scrollableList, { flex: 1 }]}>
-                            <ScrollView>
-                                {currentList.length > 0 ? (
+                            <ScrollView
+                                contentContainerStyle={{ flexGrow: 1 }}
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={refreshing}
+                                        onRefresh={() => {
+                                            setRefreshing(true);
+                                            fetchParticipants();
+                                        }}
+                                    />
+                                }
+                            >
+                                {loading ? (
+                                    <View style={styles.loadingOverlay}>
+                                        <View style={styles.loadingContainer}>
+                                            <ActivityIndicator size="large" color="#3B82F6" />
+                                            <Text style={styles.loadingText}>Veriler yükleniyor...</Text>
+                                        </View>
+                                    </View>
+                                ) : currentList.length > 0 ? (
                                     currentList.map(renderPerson)
                                 ) : (
                                     <Text style={styles.emptyText}>

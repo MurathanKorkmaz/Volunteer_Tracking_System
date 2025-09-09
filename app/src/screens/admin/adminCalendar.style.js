@@ -107,14 +107,6 @@ export default StyleSheet.create({
         fontWeight: "bold",
         color: "#333",
     },
-    loadingContainer: {
-        height: 350, // Takvim yüksekliği kadar
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        borderRadius: 10,
-        marginBottom: 20,
-    },
     loadingOverlay: {
         position: 'absolute',
         top: 0,

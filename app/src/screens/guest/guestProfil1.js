@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     SafeAreaView,
     View,
@@ -7,24 +7,35 @@ import {
     TouchableOpacity,
     Modal,
     ScrollView,
-    Alert,
     Animated,
     Dimensions,
     ActivityIndicator,
     RefreshControl,
+    BackHandler,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Circle, Svg } from "react-native-svg";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
+import MessageModal from "../../components/MessageModal";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import styles from "./guestProfil1.style";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import { useNavigation } from "@react-navigation/native";
+import MaintenanceModal from "../../components/MaintenanceModal";
+import BlockModal from "../../components/BlockModal";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function GuestProfil1() {
-    const { userId, userName } = useLocalSearchParams();
+    const { userId, userName, userAuthority } = useLocalSearchParams();
     const router = useRouter();
     const navigation = useNavigation();
+    const userCollection = userAuthority === "3" ? "personal" : "guests";
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -36,12 +47,129 @@ export default function GuestProfil1() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
+    const [isBlocked, setIsBlocked] = useState(false);
+    const [hasDbError, setHasDbError] = useState(false);
 
     const screenWidth = Dimensions.get("window").width;
     const translateX = useRef(new Animated.Value(screenWidth)).current;
 
+    // MessageModal state + tek noktadan çağırma helper'ı
+    const [msgVisible, setMsgVisible] = useState(false);
+    const [msgProps, setMsgProps] = useState({
+        title: "",
+        message: "",
+        type: "info",          // 'info' | 'success' | 'error' | 'warning'
+        primaryText: "Tamam",
+        secondaryText: undefined,
+        onPrimary: () => setMsgVisible(false),
+        onSecondary: undefined,
+        dismissable: true,
+    });
+
+    const showMessage = ({
+        title = "",
+        message = "",
+        type = "info",
+        primaryText = "Tamam",
+        onPrimary = () => setMsgVisible(false),
+        secondaryText,
+        onSecondary,
+        dismissable = true,
+    }) => {
+        setMsgProps({
+            title,
+            message,
+            type,
+            primaryText,
+            secondaryText,
+            onPrimary,
+            onSecondary,
+            dismissable,
+        });
+        setMsgVisible(true);
+    };
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
+
+    // Bakım modu kontrolü için useEffect
+    useEffect(() => {
+        const docRef = doc(db, "appSettings", "status");
+        
+        // Firestore'dan gerçek zamanlı dinleme başlat
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                console.log("Bakım modu değişikliği algılandı:", docSnap.data());
+                setMaintenanceMode(docSnap.data().maintenanceMode === true);
+            }
+        }, (error) => {
+            console.error("Maintenance mode listener error:", error);
+        });
+
+        // Cleanup: listener'ı kapat
+        return () => unsubscribe();
+    }, []);
+
+    // maintenanceMode state'ini izle
+    useEffect(() => {
+        console.log("maintenanceMode state değişti:", maintenanceMode);
+    }, [maintenanceMode]);
+
+    // Block durumu kontrolü için useEffect
+    useEffect(() => {
+        if (!userId) return;
+
+        const userDocRef = doc(db, userCollection, userId);
+        
+        const unsubscribeBlock = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const userData = docSnap.data();
+                const isUserBlocked = userData.block === "1";
+                setIsBlocked(isUserBlocked);
+            }
+        }, (error) => {
+            console.error("Block status listener error:", error);
+        });
+
+        return () => unsubscribeBlock();
+    }, [userId]);
+
+    const handleExitApp = () => {
+        console.log("Çıkış yapılıyor...");
+        BackHandler.exitApp();
+    };
+
+    // Block durumunda çıkış işlemi
+    const handleBlockExit = () => {
+        // Navigation stack'i tamamen temizle ve ana sayfaya git
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'index' }], // Ana route'a dön
+        });
+    };
+
     useEffect(() => {
         const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            // Eğer kullanıcı bloklu ise navigation'ı engelle
+            if (isBlocked) return;
+            
             // Prevent default behavior
             e.preventDefault();
 
@@ -72,13 +200,14 @@ export default function GuestProfil1() {
         fetchUserData();
 
         return unsubscribe;
-    }, [userId]);
+    }, [userId, isBlocked]);
 
     const fetchUserData = async () => {
         if (!userId) return;
         try {
             setLoading(true);
-            const userRef = doc(db, "guests", userId);
+            setHasDbError(false);
+            const userRef = doc(db, userCollection, userId);
             const userSnap = await getDoc(userRef);
             if (userSnap.exists()) {
                 const userData = userSnap.data();
@@ -90,6 +219,7 @@ export default function GuestProfil1() {
             }
         } catch (error) {
             console.error("Kullanıcı verileri alınırken hata:", error);
+            setHasDbError(true);
         } finally {
             setLoading(false);
         }
@@ -103,24 +233,38 @@ export default function GuestProfil1() {
 
     const handleResetPassword = async () => {
         if (!newPassword || !confirmPassword) {
-            alert("Lütfen tüm alanları doldurun.");
+            showMessage({
+                title: "Hata",
+                message: "Lütfen tüm alanları doldurun.",
+                type: "error",
+            });
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            alert("Şifreler uyuşmuyor.");
+            showMessage({
+                title: "Hata",
+                message: "Şifreler uyuşmuyor.",
+                type: "error",
+            });
             return;
         }
 
         try {
-            const userRef = doc(db, "guests", userId);
+            setHasDbError(false);
+            const userRef = doc(db, userCollection, userId);
             await updateDoc(userRef, { password: newPassword.trim() });
-            alert("Şifre başarıyla güncellendi.");
+            showMessage({
+                title: "Başarılı",
+                message: "Şifre başarıyla güncellendi.",
+                type: "success",
+            });
             setModalVisible(false);
             setNewPassword("");
             setConfirmPassword("");
         } catch (error) {
-            alert("Şifre güncellenirken hata oluştu.");
+            console.error("Şifre güncellenirken hata:", error);
+            setHasDbError(true);
         }
     };
 
@@ -154,6 +298,12 @@ export default function GuestProfil1() {
     };
 
     const handleBack = () => {
+        // Eğer kullanıcı bloklu ise geri dönüşü engelle
+        if (isBlocked) {
+            handleBlockExit();
+            return;
+        }
+        
         // Animasyonlu geri dönüş
         Animated.timing(translateX, {
             toValue: screenWidth,
@@ -166,6 +316,27 @@ export default function GuestProfil1() {
 
     return (
         <SafeAreaView style={{ flex: 1 }}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchUserData();
+            }} />}
+            <MaintenanceModal visible={maintenanceMode} onExit={handleExitApp} />
+            <BlockModal visible={isBlocked} onClose={handleBlockExit} />
+
+            <MessageModal
+                visible={msgVisible}
+                title={msgProps.title}
+                message={msgProps.message}
+                type={msgProps.type}
+                primaryText={msgProps.primaryText}
+                secondaryText={msgProps.secondaryText}
+                onPrimary={msgProps.onPrimary}
+                onSecondary={msgProps.onSecondary}
+                onRequestClose={() => setMsgVisible(false)}
+                dismissable={msgProps.dismissable}
+            />
+
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={{ flex: 1 }}>
                 {/* ✅ Animated içerik */}
                 <Animated.View style={{ flex: 1, transform: [{ translateX }] }}>

@@ -6,19 +6,25 @@ import {
     ScrollView,
     TextInput,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     RefreshControl,
     Animated,
     Dimensions,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { collection, getDocs } from "firebase/firestore";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
+import { collection, getDocs} from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import styles from "./adminAttendance.style";
 import { useNavigation } from "@react-navigation/native";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function AdminAttendance() {
     const router = useRouter();
@@ -26,7 +32,6 @@ export default function AdminAttendance() {
     const params = useLocalSearchParams();
     const screenWidth = Dimensions.get('window').width;
     const translateX = React.useRef(new Animated.Value(params.from === "panel1" ? screenWidth : -screenWidth)).current;
-
     const [events, setEvents] = useState([]);
     const [searchText, setSearchText] = useState("");
     const [filteredEvents, setFilteredEvents] = useState([]);
@@ -34,6 +39,8 @@ export default function AdminAttendance() {
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
 
     const showDatePicker = () => {
         setDatePickerVisibility(true);
@@ -91,6 +98,7 @@ export default function AdminAttendance() {
     const fetchEvents = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
             const year = selectedDate.getFullYear().toString();
             const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
 
@@ -105,10 +113,28 @@ export default function AdminAttendance() {
             setFilteredEvents(eventsData); // Initialize filtered events with all events
         } catch (error) {
             console.error("Etkinlikleri çekerken hata oluştu: ", error);
-            Alert.alert("Hata", "Etkinlikler yüklenirken bir hata oluştu.");
+            setHasDbError(true);
         } finally {
             setLoading(false);
             setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
         }
     };
 
@@ -172,6 +198,11 @@ export default function AdminAttendance() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchEvents();
+            }} />}
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View
                     style={{

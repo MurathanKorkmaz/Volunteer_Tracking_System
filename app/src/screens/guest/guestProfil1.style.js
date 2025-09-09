@@ -38,21 +38,6 @@ export default StyleSheet.create({
         color: "#000",
         fontWeight: "200",
     },
-    profileImage: {
-        width: screenWidth * 0.3,
-        height: screenWidth * 0.3,
-        borderRadius: screenWidth * 0.15,
-        marginTop: screenHeight * 0.025,
-        marginBottom: screenHeight * 0.012,
-        borderWidth: 3,
-        borderColor: "#FFD700",
-    },
-    changePhotoText: {
-        color: "#007BFF",
-        fontSize: Math.min(screenWidth * 0.035, 14),
-        textDecorationLine: "underline",
-        marginBottom: screenHeight * 0.025,
-    },
     graphsContainer: {
         flexDirection: "row",
         justifyContent: "center",

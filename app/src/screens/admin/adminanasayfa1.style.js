@@ -114,42 +114,4 @@ export default StyleSheet.create({
         fontSize: screenWidth * 0.04,
         textAlign: "center",
     },
-
-    overlay: {
-        flex: 1,
-        backgroundColor: "rgba(0,0,0,0.7)",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 999,
-    },
-    modalBox: {
-        backgroundColor: "#fff",
-        padding: 25,
-        borderRadius: 10,
-        width: "80%",
-        alignItems: "center",
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: "bold",
-        marginBottom: 10,
-        color: "#c00",
-    },
-    modalText: {
-        fontSize: 16,
-        textAlign: "center",
-        marginBottom: 15,
-    },
-    retryButton: {
-        backgroundColor: "#0066cc",
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 5,
-        marginTop: 10,
-    },
-    retryButtonText: {
-        color: "white",
-        fontWeight: "bold",
-        fontSize: 16,
-    },
 });

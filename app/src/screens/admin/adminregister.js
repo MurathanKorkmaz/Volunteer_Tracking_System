@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
     SafeAreaView,
     View,
@@ -7,15 +7,24 @@ import {
     TextInput,
     TouchableOpacity,
     Image,
-    Alert,
     ScrollView,
     Animated,
+    BackHandler,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
+import MessageModal from "../../components/MessageModal";
 import styles from "./adminregister.style";
 import { db } from "../../../../configs/FirebaseConfig";
-import { collection, addDoc, doc, setDoc } from "firebase/firestore";
+import { collection, addDoc, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { useNavigation } from "@react-navigation/native";
+import MaintenanceModal from "../../components/MaintenanceModal";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 function validateName(name) {
     const namePattern = /^[a-zA-ZçÇğĞıİöÖşŞüÜ ]+$/;
@@ -71,8 +80,93 @@ export default function adminregister() {
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
     const router = useRouter();
     const navigation = useNavigation();
+
+    // MessageModal state + tek noktadan çağırma helper'ı
+    const [msgVisible, setMsgVisible] = useState(false);
+    const [msgProps, setMsgProps] = useState({
+        title: "",
+        message: "",
+        type: "info",          // 'info' | 'success' | 'error' | 'warning'
+        primaryText: "Tamam",
+        secondaryText: undefined,
+        onPrimary: () => setMsgVisible(false),
+        onSecondary: undefined,
+        dismissable: true,
+    });
+
+    const showMessage = ({
+        title = "",
+        message = "",
+        type = "info",
+        primaryText = "Tamam",
+        onPrimary = () => setMsgVisible(false),
+        secondaryText,
+        onSecondary,
+        dismissable = true,
+    }) => {
+        setMsgProps({
+            title,
+            message,
+            type,
+            primaryText,
+            secondaryText,
+            onPrimary,
+            onSecondary,
+            dismissable,
+        });
+        setMsgVisible(true);
+    };
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
+
+    // Bakım modu kontrolü için useEffect
+    useEffect(() => {
+        const docRef = doc(db, "appSettings", "status");
+        
+        // Firestore'dan gerçek zamanlı dinleme başlat
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                console.log("Bakım modu değişikliği algılandı:", docSnap.data());
+                setMaintenanceMode(docSnap.data().maintenanceMode === true);
+            }
+        }, (error) => {
+            console.error("Maintenance mode listener error:", error);
+        });
+
+        // Cleanup: listener'ı kapat
+        return () => unsubscribe();
+    }, []);
+
+    // maintenanceMode state'ini izle
+    useEffect(() => {
+        console.log("maintenanceMode state değişti:", maintenanceMode);
+    }, [maintenanceMode]);
+
+    const handleExitApp = () => {
+        console.log("Çıkış yapılıyor...");
+        BackHandler.exitApp();
+    };
 
     // 📌 Mevcut zamanı al ve istenen formata çevir
     const now = new Date();
@@ -110,36 +204,61 @@ export default function adminregister() {
 
     const handleRegister = async () => {
         if (!name || !email || !phone || !password || !confirmPassword) {
-            Alert.alert("Hata", "Lütfen tüm alanları doldurun!");
+            showMessage({
+                title: "Hata",
+                message: "Lütfen tüm alanları doldurun!",
+                type: "error",
+            });
             return;
         }
 
         if (!validateName(name)) {
-            Alert.alert("Hata", "Geçersiz isim formatı!");
+            showMessage({
+                title: "Hata",
+                message: "Geçersiz isim formatı!",
+                type: "error",
+            });
             return;
         }
 
         if (!validateEmail(email)) {
-            Alert.alert("Hata", "Geçersiz e-posta formatı!");
+            showMessage({
+                title: "Hata",
+                message: "Geçersiz e-posta formatı!",
+                type: "error",
+            });
             return;
         }
 
         if (!validatePhoneNumber(phone)) {
-            Alert.alert("Hata", "Geçersiz telefon numarası formatı!");
+            showMessage({
+                title: "Hata",
+                message: "Geçersiz telefon numarası formatı!",
+                type: "error",
+            });
             return;
         }
 
         if (!validatePassword(password)) {
-            Alert.alert("Hata", "Geçersiz şifre formatı!");
+            showMessage({
+                title: "Hata",
+                message: "Geçersiz şifre formatı!",
+                type: "error",
+            });
             return;
         }
 
         if (password !== confirmPassword) {
-            Alert.alert("Hata", "Şifreler uyuşmuyor!");
+            showMessage({
+                title: "Hata",
+                message: "Şifreler uyuşmuyor!",
+                type: "error",
+            });
             return;
         }
 
         try {
+            setHasDbError(false);
             // `request` koleksiyonuna veri ekle
             const newDocRef = await addDoc(collection(db, "request"), {
                 email: email,
@@ -168,16 +287,43 @@ export default function adminregister() {
                 registerAt: registerAt,
             });
 
-            Alert.alert("Başarılı", "Kayıt işleminiz tamamlandı!");
-            router.back();
+            showMessage({
+                title: "Başarılı",
+                message: "Kayıt işleminiz tamamlandı!",
+                type: "success",
+                onPrimary: () => {
+                    setMsgVisible(false);
+                    router.back();
+                },
+            });
         } catch (error) {
             console.error("Error saving user data: ", error);
-            Alert.alert("Hata", "Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+            setHasDbError(true);
         }
     };
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                handleRegister();
+            }} />}
+            <MaintenanceModal visible={maintenanceMode} onExit={handleExitApp} />
+
+            <MessageModal
+                visible={msgVisible}
+                title={msgProps.title}
+                message={msgProps.message}
+                type={msgProps.type}
+                primaryText={msgProps.primaryText}
+                secondaryText={msgProps.secondaryText}
+                onPrimary={msgProps.onPrimary}
+                onSecondary={msgProps.onSecondary}
+                onRequestClose={() => setMsgVisible(false)}
+                dismissable={msgProps.dismissable}
+            />
+
             <LinearGradient
                 colors={["#FDFD96", "#FFEA00"]}
                 style={styles.background}

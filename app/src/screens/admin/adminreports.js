@@ -5,27 +5,43 @@ import {
     Text,
     TouchableOpacity,
     ScrollView,
-    TextInput,
-    Alert,
-    ActivityIndicator,
-    RefreshControl,
     Animated,
     Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
 import styles from "./adminreports.style";
 import { useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams } from "expo-router";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../../../configs/FirebaseConfig";
+
 import { Stack } from "expo-router";
 
 export default function AdminReports() {
     const router = useRouter();
     const navigation = useNavigation();
     const params = useLocalSearchParams();
+    const [isConnected, setIsConnected] = useState(true);
     const screenWidth = Dimensions.get('window').width;
     const translateX = React.useRef(new Animated.Value(params.from === "panel1" ? screenWidth : -screenWidth)).current;
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
 
     useEffect(() => {
         navigation.setOptions({
@@ -108,6 +124,7 @@ export default function AdminReports() {
 
     return (
         <View style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
             <Stack.Screen options={{ headerShown: false }} />
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View

@@ -73,8 +73,9 @@ export default StyleSheet.create({
     },
     roleButton: {
         flex: 1,
-        marginHorizontal: screenWidth * 0.012,
+        marginHorizontal: screenWidth * 0.007,
         paddingVertical: screenHeight * 0.012,
+        paddingHorizontal: screenWidth * 0.02,
         borderWidth: 2,
         borderColor: "#FFD700",
         borderRadius: 5,
@@ -108,7 +109,7 @@ export default StyleSheet.create({
     },
     saveButton: {
         marginTop: screenHeight * 0.025,
-        marginHorizontal: screenWidth * 0.05,
+        marginHorizontal: screenWidth * 0.002,
         paddingVertical: screenHeight * 0.02,
         borderRadius: 10,
         backgroundColor: "#4CAF50",
@@ -122,7 +123,7 @@ export default StyleSheet.create({
     },
     deleteButton: {
         marginTop: screenHeight * 0.025,
-        marginHorizontal: screenWidth * 0.1,
+        marginHorizontal: screenWidth * 0.002,
         paddingVertical: screenHeight * 0.02,
         borderRadius: 10,
         backgroundColor: "#FF5733",
@@ -156,14 +157,35 @@ export default StyleSheet.create({
         paddingVertical: screenHeight * 0.012,
         width: "100%"
     },
-    numberInput: {
-        height: screenHeight * 0.05,
-        borderColor: '#4CAF50',
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: screenWidth * 0.025,
-        fontSize: Math.min(screenWidth * 0.04, 16),
-        textAlign: 'center',
-        backgroundColor: '#FFF'
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    loadingContainer: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    loadingText: {
+        color: '#3B82F6',
+        fontSize: 16,
+        fontWeight: '600',
+        marginTop: 10,
     },
 });

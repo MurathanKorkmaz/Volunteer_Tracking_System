@@ -96,12 +96,6 @@ export default StyleSheet.create({
         fontWeight: "bold",
         marginBottom: screenHeight * 0.012,
     },
-    eventPoint: {
-        fontSize: Math.min(screenWidth * 0.04, 16),
-        color: "#08d3d3",
-        fontWeight: "bold",
-        marginBottom: screenHeight * 0.018,
-    },
     buttonContainer: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -137,10 +131,6 @@ export default StyleSheet.create({
         fontSize: Math.min(screenWidth * 0.035, 14),
         textAlign: "center",
         fontWeight: "bold",
-    },
-    datePickerContainer: {
-        alignItems: "center",
-        marginVertical: screenHeight * 0.012,
     },
     datePickerButton: {
         width: "88%",

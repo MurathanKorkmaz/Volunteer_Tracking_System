@@ -13,15 +13,28 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import styles from "./adminPanel1.style"; // Stil dosyasını import et
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
 import { useNavigation } from "@react-navigation/native";
 
 export default function adminPanel1() {
-    const router = useRouter(); // Router oluşturuldu
+    const router = useRouter(); // Router oluşturuldu 
     const navigation = useNavigation();
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
     const slideAnim = React.useRef(new Animated.Value(Dimensions.get('window').height)).current;
     const translateX = React.useRef(new Animated.Value(0)).current;
     const screenWidth = Dimensions.get('window').width;
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
 
     useEffect(() => {
         // Gesture'ı devre dışı bırak
@@ -29,12 +42,20 @@ export default function adminPanel1() {
             gestureEnabled: false
         });
 
+        // İnternet bağlantısı kontrolü
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
             showConfirmationDialog();
             return true;
         });
 
-        return () => backHandler.remove();
+        return () => {
+            unsubscribe();
+            backHandler.remove();
+        };
     }, [navigation]);
 
     const showConfirmationDialog = () => {
@@ -153,6 +174,17 @@ export default function adminPanel1() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && (
+                <View style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: 9999,
+                }}>
+                    <NoInternet onRetry={checkConnection} />
+                </View>
+            )}
             <LinearGradient
                 colors={["#FFFACD", "#FFD701"]}
                 style={styles.background}

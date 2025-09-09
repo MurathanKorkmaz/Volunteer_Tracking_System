@@ -148,6 +148,7 @@ export default StyleSheet.create({
         fontWeight: "bold",
         fontSize: Math.min(screenWidth * 0.035, 14),
     },
+    
     loadingOverlay: {
         position: 'absolute',
         top: screenHeight * 0.15,

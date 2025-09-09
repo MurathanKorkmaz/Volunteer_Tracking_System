@@ -1,8 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
-    Alert,
     SafeAreaView,
     View,
     Text,
@@ -13,9 +11,14 @@ import {
     RefreshControl,
     Animated,
     Dimensions,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
+import MessageModal from "../../components/MessageModal";
 import styles from "./adminevents.style";
 import {
     collection,
@@ -29,6 +32,9 @@ import {
 import { db } from "../../../../configs/FirebaseConfig";
 import { useNavigation } from "@react-navigation/native";
 
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
+
 export default function adminEvents() {
     const router = useRouter();
     const navigation = useNavigation();
@@ -40,6 +46,44 @@ export default function adminEvents() {
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
+
+    const [msgVisible, setMsgVisible] = useState(false);
+    const [msgProps, setMsgProps] = useState({
+        title: "",
+        message: "",
+        type: "info",          // 'info' | 'success' | 'warning' | 'error'
+        primaryText: "Tamam",
+        secondaryText: undefined,
+        onPrimary: () => setMsgVisible(false),
+        onSecondary: undefined,
+        dismissable: true,
+    });
+
+    const showMessage = ({
+        title = "",
+        message = "",
+        type = "info",
+        primaryText = "Tamam",
+        onPrimary = () => setMsgVisible(false),
+        secondaryText,
+        onSecondary,
+        dismissable = true,
+    }) => {
+        setMsgProps({
+            title,
+            message,
+            type,
+            primaryText,
+            secondaryText,
+            onPrimary,
+            onSecondary,
+            dismissable,
+        });
+        setMsgVisible(true);
+    };
+
     const screenWidth = Dimensions.get('window').width;
     const translateX = React.useRef(new Animated.Value(screenWidth)).current;
 
@@ -49,6 +93,7 @@ export default function adminEvents() {
     const fetchCurrentMonthEvents = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
             const currentYear = selectedDate.getFullYear().toString();
             const currentMonth = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
             const eventsRef = collection(db, "events", currentYear, currentMonth);
@@ -75,7 +120,7 @@ export default function adminEvents() {
             setFilteredEvents(allEvents);
         } catch (error) {
             console.error("Etkinlikler alınırken hata oluştu:", error);
-            Alert.alert("Hata", "Etkinlikler yüklenirken bir hata oluştu.");
+            setHasDbError(true);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -120,6 +165,24 @@ export default function adminEvents() {
     useEffect(() => {
         fetchCurrentMonthEvents();
     }, [selectedDate]);
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
 
     const handleBack = () => {
         // Animasyonlu geri dönüş
@@ -201,7 +264,11 @@ export default function adminEvents() {
             const eventDocSnap = await getDoc(eventDocRef);
 
             if (!eventDocSnap.exists()) {
-                Alert.alert("Hata", "Silinecek etkinlik bulunamadı!");
+                showMessage({
+                    title: "Hata",
+                    message: "Silinecek etkinlik bulunamadı!",
+                    type: "error",
+                });
                 return;
             }
 
@@ -228,18 +295,45 @@ export default function adminEvents() {
 
             await deleteDoc(eventDocRef);
 
-            Alert.alert("Başarılı", "Etkinlik ve alt koleksiyonları silindi.");
+            showMessage({
+                title: "Başarılı",
+                message: "Etkinlik ve alt koleksiyonları silindi.",
+                type: "success",
+            });
 
             setEvents(events.filter((event) => event.id !== eventId));
             setFilteredEvents(filteredEvents.filter((event) => event.id !== eventId));
         } catch (error) {
             console.error("Etkinlik silinirken hata oluştu:", error);
-            Alert.alert("Hata", "Etkinlik silinirken bir hata oluştu.");
+            showMessage({
+                title: "Hata",
+                message: "Etkinlik silinirken bir hata oluştu.",
+                type: "error",
+            });
         }
     };
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchCurrentMonthEvents();
+            }} />}
+
+            <MessageModal
+                visible={msgVisible}
+                title={msgProps.title}
+                message={msgProps.message}
+                type={msgProps.type}
+                primaryText={msgProps.primaryText}
+                secondaryText={msgProps.secondaryText}
+                onPrimary={msgProps.onPrimary}
+                onSecondary={msgProps.onSecondary}
+                onRequestClose={() => setMsgVisible(false)}
+                dismissable={msgProps.dismissable}
+            />
+
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View
                     style={{

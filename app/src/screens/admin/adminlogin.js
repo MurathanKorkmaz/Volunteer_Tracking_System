@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useState, useRef, useEffect } from "react";
 import {
     SafeAreaView,
@@ -7,30 +7,132 @@ import {
     TextInput,
     TouchableOpacity,
     Image,
-    Alert,
     ScrollView,
     Animated,
     ActivityIndicator,
     Dimensions,
+    BackHandler,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import styles from "./adminlogin.style";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
 import { db } from "../../../../configs/FirebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, doc } from "firebase/firestore";
 import { useNavigation } from "@react-navigation/native";
+import MaintenanceModal from "../../components/MaintenanceModal";
+import BlockModal from "../../components/BlockModal";
+import DatabaseError from "../../components/DatabaseError";
+import MessageModal from "../../components/MessageModal";
+
+// Firebase ve diğer tüm hata mesajlarını gizle
+LogBox.ignoreAllLogs();
+// Alternatif olarak sadece belirli hataları gizlemek için:
+// LogBox.ignoreLogs([
+//     'Possible Unhandled Promise Rejection',
+//     'FirebaseError:',
+//     'Maintenance mode listener error:',
+//     'Error: Veritabanına erişilemiyor',
+//     'Login error',
+//     'Error: Firebase',
+//     '[firebase]',
+//     'firebase',
+//     'Error: [auth]',
+//     'auth/invalid-login',
+// ]);
 
 export default function adminlogin() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
+    const [isBlocked, setIsBlocked] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [showDbError, setShowDbError] = useState(false);
     const router = useRouter();
     const navigation = useNavigation();
+    const [msgVisible, setMsgVisible] = useState(false);
+    const [msgProps, setMsgProps] = useState({
+        title: "",
+        message: "",
+        type: "info",          // 'info' | 'success' | 'warning' | 'error'
+        primaryText: "Tamam",
+        secondaryText: undefined,
+        onPrimary: () => setMsgVisible(false),
+        onSecondary: undefined,
+        dismissable: true,
+    });
+    const showMessage = ({
+        title = "",
+        message = "",
+        type = "info",
+        primaryText = "Tamam",
+        onPrimary = () => setMsgVisible(false),
+        secondaryText,
+        onSecondary,
+        dismissable = true,
+        }) => {
+        setMsgProps({
+            title,
+            message,
+            type,
+            primaryText,
+            secondaryText,
+            onPrimary,
+            onSecondary,
+            dismissable,
+        });
+        setMsgVisible(true);
+    };
+
     const screenWidth = Dimensions.get('window').width;
 
     const translateX = useRef(new Animated.Value(screenWidth)).current;
 
+    const handleBlockModalClose = () => {
+        setIsBlocked(false);
+    };
+
+    // Bakım modu kontrolü için useEffect
     useEffect(() => {
-        // Gesture'ı devre dışı bırak
+        const docRef = doc(db, "appSettings", "status");
+        
+        // Firestore'dan gerçek zamanlı dinleme başlat
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                console.log("Bakım modu değişikliği algılandı:", docSnap.data());
+                setMaintenanceMode(docSnap.data().maintenanceMode === true);
+            }
+        }, (error) => {
+            // Hata durumunda sadece konsola yaz
+            console.error("Maintenance mode listener error:", error);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // maintenanceMode state'ini izle
+    useEffect(() => {
+        console.log("maintenanceMode state değişti:", maintenanceMode);
+    }, [maintenanceMode]);
+
+    const handleExitApp = () => {
+        console.log("Çıkış yapılıyor...");
+        BackHandler.exitApp();
+    };
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
+
+    useEffect(() => {
         navigation.setOptions({
             gestureEnabled: false,
         });
@@ -40,6 +142,12 @@ export default function adminlogin() {
             duration: 100,
             useNativeDriver: true,
         }).start();
+
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
     }, [navigation]);
 
     const validateEmail = (email) => {
@@ -54,68 +162,106 @@ export default function adminlogin() {
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert("Hata", "Lütfen tüm alanları doldurun!");
+            showMessage({
+                title: "Hata",
+                message: "Lütfen tüm alanları doldurun!",
+                type: "error",
+            });
             return;
         }
 
         if (!validateEmail(email)) {
-            Alert.alert("Hata", "Geçerli bir e-posta adresi giriniz!");
+            showMessage({
+                title: "Hata",
+                message: "Geçerli bir e-posta adresi giriniz!",
+                type: "error",
+            });
             return;
         }
 
         if (!validatePassword(password)) {
-            Alert.alert("Hata", "Geçerli bir şifre giriniz! (sadece harf, rakam ve alt çizgi karakteri) ");
+            showMessage({
+                title: "Hata",
+                message: "Geçerli bir şifre giriniz! (sadece harf, rakam ve alt çizgi)",
+                type: "error",
+            });
             return;
         }
 
         setIsLoading(true);
+        setShowDbError(false);
 
         try {
+            // Önce veritabanına erişilebilirliği kontrol et
+            const testDoc = await getDocs(collection(db, "admin")).catch(() => null);
+            if (!testDoc) {
+                throw new Error("Veritabanına erişilemiyor");
+            }
+
             const adminSnapshot = await getDocs(collection(db, "admin"));
             const guestSnapshot = await getDocs(collection(db, "guests"));
+            const personalSnapshot = await getDocs(collection(db, "personal"));
             let userFound = false;
 
+            // Admin kontrolü
             adminSnapshot.forEach((doc) => {
                 const data = doc.data();
                 if (String(data.email) === String(email) && String(data.password) === String(password)) {
                     userFound = true;
-                    if (data.block === "1") {
-                        Alert.alert("Hata", "Hesabınızın erişimi engellenmiştir.");
-                    } else {
-                        // Animasyonlu geçiş
-                        Animated.timing(translateX, {
-                            toValue: -screenWidth,
-                            duration: 100,
-                            useNativeDriver: true,
-                        }).start(() => {
-                            router.push({ 
-                                pathname: "./adminPanel1", 
-                                params: { 
-                                    userId: doc.id, 
-                                    userName: data.name,
-                                    from: "login"
-                                } 
-                            });
+                    // Admin için block kontrolü yapılmıyor
+                    Animated.timing(translateX, {
+                        toValue: -screenWidth,
+                        duration: 100,
+                        useNativeDriver: true,
+                    }).start(() => {
+                        router.push({ 
+                            pathname: "./adminPanel1", 
+                            params: { 
+                                userId: doc.id, 
+                                userName: data.name,
+                                from: "login"
+                            } 
                         });
-                    }
+                    });
                 }
             });
 
+            // Guest kontrolü
             if (!userFound) {
                 guestSnapshot.forEach((doc) => {
                     const data = doc.data();
                     if (String(data.email) === String(email) && String(data.password) === String(password)) {
                         userFound = true;
                         if (data.block === "1") {
-                            Alert.alert("Hata", "Hesabınızın erişimi engellenmiştir.");
+                            setIsBlocked(true);
                         } else {
-                            // Animasyonlu geçiş
                             Animated.timing(translateX, {
                                 toValue: -screenWidth,
                                 duration: 100,
                                 useNativeDriver: true,
                             }).start(() => {
-                                router.push({ pathname: "./../guest/guestPanel1", params: { userId: doc.id, userName: data.name } });
+                                router.push({ pathname: "./../guest/guestPanel1", params: { userId: doc.id, userName: data.name, userAuthority: data.authority } });
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Personal kontrolü
+            if (!userFound) {
+                personalSnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (String(data.email) === String(email) && String(data.password) === String(password)) {
+                        userFound = true;
+                        if (data.block === "1") {
+                            setIsBlocked(true);
+                        } else {
+                            Animated.timing(translateX, {
+                                toValue: -screenWidth,
+                                duration: 100,
+                                useNativeDriver: true,
+                            }).start(() => {
+                                router.push({ pathname: "./../guest/guestPanel1", params: { userId: doc.id, userName: data.name, userAuthority: data.authority } });
                             });
                         }
                     }
@@ -123,11 +269,16 @@ export default function adminlogin() {
             }
 
             if (!userFound) {
-                Alert.alert("Hata", "Geçersiz e-posta veya şifre!");
+                showMessage({
+                    title: "Hata",
+                    message: "Geçersiz e-posta veya şifre!",
+                    type: "error",
+                });
             }
         } catch (error) {
-            Alert.alert("Hata", "Giriş yapılırken bir hata meydana geldi!");
+            // Hata konsola yazdırılır ama kullanıcıya sadece DatabaseError gösterilir
             console.error("Login error: ", error);
+            setShowDbError(true);
         } finally {
             setIsLoading(false);
         }
@@ -146,6 +297,27 @@ export default function adminlogin() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <MaintenanceModal visible={maintenanceMode} onExit={handleExitApp} />
+            <BlockModal visible={isBlocked} onClose={handleBlockModalClose} />
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {showDbError && <DatabaseError onRetry={() => {
+                setShowDbError(false);
+                handleLogin();
+            }} />}
+
+            <MessageModal
+                visible={msgVisible}
+                title={msgProps.title}
+                message={msgProps.message}
+                type={msgProps.type}
+                primaryText={msgProps.primaryText}
+                secondaryText={msgProps.secondaryText}
+                onPrimary={msgProps.onPrimary}
+                onSecondary={msgProps.onSecondary}
+                onRequestClose={() => setMsgVisible(false)}
+                dismissable={msgProps.dismissable}
+            />
+
             <LinearGradient
                 colors={["#FDFD96", "#FFEA00"]}
                 style={styles.background}
@@ -220,16 +392,16 @@ export default function adminlogin() {
                         </View>
                     </ScrollView>
                 </Animated.View>
-
-                {isLoading && (
-                    <View style={styles.loadingOverlay}>
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="large" color="#3B82F6" />
-                            <Text style={styles.loadingText}>Giriş yapılıyor...</Text>
-                        </View>
-                    </View>
-                )}
             </LinearGradient>
+
+            {isLoading && (
+                <View style={styles.loadingOverlay}>
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#3B82F6" />
+                        <Text style={styles.loadingText}>Giriş yapılıyor...</Text>
+                    </View>
+                </View>
+            )}
         </SafeAreaView>
     );
 }

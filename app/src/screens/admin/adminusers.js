@@ -6,18 +6,25 @@ import {
     TextInput,
     TouchableOpacity,
     ScrollView,
-    Alert,
     ActivityIndicator,
     RefreshControl,
     Animated,
     Dimensions,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
 import { collection, getDocs, doc, deleteDoc, setDoc } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import styles from "./adminusers.style";
 import { useNavigation } from "@react-navigation/native";
+import DatabaseError from "../../components/DatabaseError";
+import MessageModal from "../../components/MessageModal";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function adminUsers() {
     const [searchText, setSearchText] = useState("");
@@ -29,12 +36,53 @@ export default function adminUsers() {
     const navigation = useNavigation();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
+    // Mesaj modal state
+    const [msgVisible, setMsgVisible] = useState(false);
+    const [msgProps, setMsgProps] = useState({
+        title: "",
+        message: "",
+        type: "info",          // 'info' | 'success' | 'warning' | 'error'
+        primaryText: "Tamam",
+        secondaryText: undefined,
+        onPrimary: () => setMsgVisible(false),
+        onSecondary: undefined,
+        dismissable: true,
+    });
+
+    // Tek noktadan çağırmak için yardımcı
+    const showMessage = ({
+        title = "",
+        message = "",
+        type = "info",
+        primaryText = "Tamam",
+        onPrimary = () => setMsgVisible(false),
+        secondaryText,
+        onSecondary,
+        dismissable = true,
+    }) => {
+        setMsgProps({
+            title,
+            message,
+            type,
+            primaryText,
+            secondaryText,
+            onPrimary,
+            onSecondary,
+            dismissable,
+        });
+        setMsgVisible(true);
+    };
+
     const screenWidth = Dimensions.get('window').width;
     const translateX = React.useRef(new Animated.Value(screenWidth)).current;
 
     const fetchData = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
+
             // Admin verilerini al
             const adminSnapshot = await getDocs(collection(db, "admin"));
             const adminData = adminSnapshot.docs.map((doc) => ({
@@ -46,7 +94,9 @@ export default function adminUsers() {
                         ? "Yetkisiz"
                         : doc.data().authority === "1"
                             ? "Guest"
-                            : "Admin",
+                            : doc.data().authority === "2"
+                                ? "Admin"
+                                : "Personal",
                 Password: String(doc.data().password),
                 PhoneNumber: String(doc.data().phoneNumber),
                 isBlocked: String(doc.data().block),
@@ -66,7 +116,31 @@ export default function adminUsers() {
                         ? "Yetkisiz"
                         : doc.data().authority === "1"
                             ? "Guest"
-                            : "Admin",
+                            : doc.data().authority === "2"
+                                ? "Admin"
+                                : "Personal",
+                Password: String(doc.data().password),
+                PhoneNumber: String(doc.data().phoneNumber),
+                isBlocked: String(doc.data().block),
+                Rating: doc.data().rating ? String(doc.data().rating) : "0", 
+                Turnout: doc.data().turnout ? String(doc.data().turnout) : "0",
+                RatingCounter: doc.data().ratingCounter ? String(doc.data().ratingCounter) : "0",                
+            }));
+
+            // Personal verilerini al
+            const personalSnapshot = await getDocs(collection(db, "personal"));
+            const personalData = personalSnapshot.docs.map((doc) => ({
+                Id: doc.id,
+                Mail: String(doc.data().email),
+                Name: String(doc.data().name),
+                Role:
+                    doc.data().authority === "0"
+                        ? "Yetkisiz"
+                        : doc.data().authority === "1"
+                            ? "Guest"
+                            : doc.data().authority === "2"
+                                ? "Admin"
+                                : "Personal",
                 Password: String(doc.data().password),
                 PhoneNumber: String(doc.data().phoneNumber),
                 isBlocked: String(doc.data().block),
@@ -86,7 +160,9 @@ export default function adminUsers() {
                         ? "Yetkisiz"
                         : doc.data().authority === "1"
                             ? "Guest"
-                            : "Admin",
+                            : doc.data().authority === "2"
+                                ? "Admin"
+                                : "Personal",
                 Password: String(doc.data().password),
                 PhoneNumber: String(doc.data().phoneNumber),
                 isBlocked: String(doc.data().block),
@@ -96,14 +172,24 @@ export default function adminUsers() {
                 registerAt: doc.data().registerAt || "",
             }));            
 
-            setUsers([...adminData, ...guestData]);
+            setUsers([...adminData, ...guestData, ...personalData]);
             setRequests(requestData);
         } catch (error) {
             console.error("Veriler alınırken hata oluştu: ", error);
-            Alert.alert("Hata", "Veriler yüklenirken bir hata oluştu.");
+            setHasDbError(true);
         } finally {
             setLoading(false);
             setRefreshing(false);
+        }
+    };
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
         }
     };
 
@@ -139,7 +225,15 @@ export default function adminUsers() {
 
         fetchData();
 
-        return unsubscribe;
+        // İnternet bağlantısı kontrolü
+        const netInfoUnsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => {
+            unsubscribe();
+            netInfoUnsubscribe();
+        };
     }, [navigation]);
 
     const handleBack = () => {
@@ -182,7 +276,11 @@ export default function adminUsers() {
             const requestData = requests.find((req) => req.Id === id);
 
             if (!requestData) {
-                Alert.alert("Hata", "Kayıt bulunamadı.");
+                showMessage({
+                    title: "Hata",
+                    message: "Kayıt bulunamadı.",
+                    type: "error",
+                });
                 return;
             }
 
@@ -203,12 +301,20 @@ export default function adminUsers() {
             // Veriyi request koleksiyonundan sil
             await deleteDoc(requestDocRef);
 
-            Alert.alert("Başarılı", "Kayıt başarıyla kabul edildi.");
+            showMessage({
+                title: "Başarılı",
+                message: "Kayıt başarıyla kabul edildi.",
+                type: "success",
+            });
             // Verileri yeniden yükle
             fetchData();
         } catch (error) {
             console.error("Kayıt taşınırken hata oluştu: ", error);
-            Alert.alert("Hata", "Kayıt taşınırken bir hata oluştu.");
+            showMessage({
+                title: "Hata",
+                message: "Kayıt taşınırken bir hata oluştu.",
+                type: "error",
+            });
         }
     };
 
@@ -216,11 +322,19 @@ export default function adminUsers() {
         try {
             const requestDocRef = doc(db, "request", id);
             await deleteDoc(requestDocRef);
-            Alert.alert("Başarılı", "Kayıt başarıyla reddedildi.");
+            showMessage({
+                title: "Başarılı",
+                message: "Kayıt başarıyla reddedildi.",
+                type: "success",
+            });
             fetchData();
         } catch (error) {
             console.error("Kayıt silinirken hata oluştu: ", error);
-            Alert.alert("Hata", "Kayıt silinirken bir hata oluştu.");
+            showMessage({
+                title: "Hata",
+                message: "Kayıt silinirken bir hata oluştu.",
+                type: "error",
+            });
         }
     };
 
@@ -279,6 +393,25 @@ export default function adminUsers() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchData();
+            }} />}
+
+            <MessageModal
+                visible={msgVisible}
+                title={msgProps.title}
+                message={msgProps.message}
+                type={msgProps.type}
+                primaryText={msgProps.primaryText}
+                secondaryText={msgProps.secondaryText}
+                onPrimary={msgProps.onPrimary}
+                onSecondary={msgProps.onSecondary}
+                onRequestClose={() => setMsgVisible(false)}
+                dismissable={msgProps.dismissable}
+            />
+
             <LinearGradient
                 colors={["#FFFACD", "#FFD701"]}
                 style={styles.background}

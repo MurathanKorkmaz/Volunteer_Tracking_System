@@ -87,10 +87,6 @@ export default StyleSheet.create({
         fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#666",
     },
-    eventActions: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
     editButton: {
         backgroundColor: "#FFD700",
         paddingVertical: screenHeight * 0.006,
@@ -159,29 +155,6 @@ export default StyleSheet.create({
     },
     tabButtonTextActive: {
         color: "#FFF",
-    },
-    listSafeArea: {
-        maxHeight: screenHeight * 0.6,
-        width: "90%",
-        alignSelf: "center",
-        backgroundColor: "#FFF",
-        borderRadius: 10,
-        paddingVertical: screenHeight * 0.012,
-        marginTop: screenHeight * 0.012,
-        marginBottom: screenHeight * 0.025,
-        elevation: 3,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-    scrollContainer: {
-        flexGrow: 1,
-        paddingBottom: Platform.OS === 'ios' ? screenHeight * 0.08 : screenHeight * 0.05,
-    },
-    datePickerContainer: {
-        alignItems: "center",
-        marginVertical: screenHeight * 0.012,
     },
     datePickerButton: {
         width: "88%",

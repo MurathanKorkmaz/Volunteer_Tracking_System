@@ -8,15 +8,21 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
-    Alert,
     Animated,
     Dimensions,
+    LogBox,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { collection, getDocs } from "firebase/firestore";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
+import { collection, getDocs} from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import styles from "./adminAnnouncements3.style"; // aynı tasarımı kullanıyoruz
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function AdminAnnouncements3() {
     const router = useRouter();
@@ -34,6 +40,26 @@ export default function AdminAnnouncements3() {
     const [filteredParticipants, setFilteredParticipants] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
 
     useEffect(() => {
         Animated.timing(translateX, {
@@ -50,6 +76,7 @@ export default function AdminAnnouncements3() {
     const fetchParticipants = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
 
             const reportRef = collection(db, "pointsReports", year, month);
             const reportSnap = await getDocs(reportRef);
@@ -65,7 +92,7 @@ export default function AdminAnnouncements3() {
             setFilteredParticipants(participantsList);
         } catch (error) {
             console.error("❌ Katılım puanları alınırken hata:", error);
-            Alert.alert("Hata", "Katılım puanları alınırken bir hata oluştu.");
+            setHasDbError(true);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -97,6 +124,11 @@ export default function AdminAnnouncements3() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchParticipants();
+            }} />}
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View
                     style={{

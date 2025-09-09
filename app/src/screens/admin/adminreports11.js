@@ -6,18 +6,25 @@ import {
     TouchableOpacity,
     ScrollView,
     TextInput,
-    Alert,
     Keyboard,
     ActivityIndicator,
     RefreshControl,
     Animated,
     Dimensions,
+    BackHandler,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
 import styles from "./adminreports11.style";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function adminReports11() {
     const router = useRouter();
@@ -32,11 +39,19 @@ export default function adminReports11() {
     const [searchText, setSearchText] = useState("");
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
     const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+    const [hasDbError, setHasDbError] = useState(false);
+
+    const handleExitApp = () => {
+        console.log("Çıkış yapılıyor...");
+        BackHandler.exitApp();
+    };
 
     const fetchParticipants = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
             const particantRef = collection(db, "pastEvents", year, month, id, "Particant");
             const particantSnap = await getDocs(particantRef);
 
@@ -80,7 +95,7 @@ export default function adminReports11() {
             setProgress(calculatedProgress);
         } catch (error) {
             console.error("Başvuru verileri çekilirken hata oluştu:", error);
-            Alert.alert("Hata", "Veriler çekilirken bir hata oluştu.");
+            setHasDbError(true);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -113,6 +128,24 @@ export default function adminReports11() {
     }, []);
 
     useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
+
+    useEffect(() => {
         Animated.timing(translateX, {
             toValue: 0,
             duration: 100,
@@ -141,6 +174,11 @@ export default function adminReports11() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchParticipants();
+            }} />}
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View
                     style={{

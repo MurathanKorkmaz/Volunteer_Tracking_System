@@ -5,19 +5,26 @@ import {
     TextInput,
     ScrollView,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     RefreshControl,
     Animated,
     Dimensions,
+    BackHandler,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
 import styles from "./adminannouncements.style";
-import { collection, doc, getDoc, deleteDoc, setDoc, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, deleteDoc, setDoc, getDocs} from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function AdminAnnouncements() {
     const [searchText, setSearchText] = useState("");
@@ -25,8 +32,10 @@ export default function AdminAnnouncements() {
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("published");
+    const [isConnected, setIsConnected] = useState(true);
     const [eventStatus, setEventStatus] = useState("1");
     const [refreshing, setRefreshing] = useState(false);
+    const [hasDbError, setHasDbError] = useState(false);
 
     const router = useRouter();
     const navigation = useNavigation();
@@ -34,9 +43,15 @@ export default function AdminAnnouncements() {
     const screenWidth = Dimensions.get('window').width;
     const translateX = React.useRef(new Animated.Value(params.from === "panel1" ? screenWidth : -screenWidth)).current;
 
+    const handleExitApp = () => {
+        console.log("Çıkış yapılıyor...");
+        BackHandler.exitApp();
+    };
+
     const fetchAnnouncements = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
             const querySnapshot = await getDocs(collection(db, "announcements"));
             const announcementsData = [];
             querySnapshot.forEach((doc) => {
@@ -46,10 +61,28 @@ export default function AdminAnnouncements() {
             setFilteredAnnouncements(announcementsData);
         } catch (error) {
             console.error("Duyurular alınırken hata oluştu:", error);
-            Alert.alert("Hata", "Duyurular yüklenirken bir hata oluştu.");
+            setHasDbError(true);
         } finally {
             setLoading(false);
             setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
         }
     };
 
@@ -113,8 +146,9 @@ export default function AdminAnnouncements() {
 
         // Duyuruları filtrele
         const filtered = announcements.filter((announcement) => {
-            if (!announcement.title) return false;
-            return announcement.title.toLowerCase().includes(searchTerm);
+            const title = announcement.Tittle || announcement.title || "";
+            if (!title) return false;
+            return title.toLowerCase().includes(searchTerm);
         });
 
         setFilteredAnnouncements(filtered);
@@ -125,7 +159,7 @@ export default function AdminAnnouncements() {
             pathname: "./adminannouncementsEdit1",
             params: {
                 id: announcement.id,
-                title: announcement.title,
+                title: announcement.Tittle || announcement.title || "",
                 description: announcement.description,
                 startDate: announcement.startDate,
                 endDate: announcement.endDate,
@@ -162,11 +196,17 @@ export default function AdminAnnouncements() {
             fetchAnnouncements();
         } catch (error) {
             console.error("❌ Duyuru silme hatası:", error);
+            setHasDbError(true);
         }
     };
 
     return (
         <SafeAreaView edges={['left', 'right']} style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchAnnouncements();
+            }} />}
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View
                     style={{
@@ -277,7 +317,7 @@ export default function AdminAnnouncements() {
                                             onPress={() => handleEdit(announcement)}
                                         >
                                             <View style={styles.announcementDetails}>
-                                                <Text style={styles.announcementTitle}>{announcement.title}</Text>
+                                                <Text style={styles.announcementTitle}>{announcement.Tittle || announcement.title || "Başlık Yok"}</Text>
                                                 <Text style={styles.announcementDate}>
                                                     {announcement.startDate} - {announcement.endDate}
                                                 </Text>

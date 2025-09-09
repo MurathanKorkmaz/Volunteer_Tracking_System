@@ -8,15 +8,21 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
-    Alert,
     Animated,
     Dimensions,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import styles from "./adminreports5.style";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function AdminReports5() {
     const router = useRouter();
@@ -28,6 +34,26 @@ export default function AdminReports5() {
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
 
     useEffect(() => {
         Animated.timing(translateX, {
@@ -53,6 +79,7 @@ export default function AdminReports5() {
     const fetchMonthlyReports = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
             const months = [];
 
             for (let i = 1; i <= 12; i++) {
@@ -68,7 +95,7 @@ export default function AdminReports5() {
             setMonthsList(months);
         } catch (error) {
             console.error("❌ Yıla ait ay verileri alınamadı:", error);
-            Alert.alert("Hata", "Yıla ait ay verileri alınamadı.");
+            setHasDbError(true);
             setMonthsList([]);
         } finally {
             setLoading(false);
@@ -101,6 +128,11 @@ export default function AdminReports5() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchMonthlyReports();
+            }} />}
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View
                     style={{

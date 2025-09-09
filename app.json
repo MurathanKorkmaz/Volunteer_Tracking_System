@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "murathan1",
-    "slug": "murathan1",
+    "name": "sitoded",
+    "slug": "sitoded",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -20,7 +20,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.murathan1"
+      "package": "com.anonymous.sitoded"
     },
     "web": {
       "bundler": "metro",

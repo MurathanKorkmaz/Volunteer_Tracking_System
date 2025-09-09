@@ -7,30 +7,34 @@ import {
     Image,
     TouchableOpacity,
     Animated,
-    Modal,
-    StyleSheet,
-    Alert,
-    NetInfo,
+    BackHandler,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import styles from "./adminanasayfa1.style";
-import { getDoc, doc, onSnapshot, enableNetwork, getDocs, collection } from "firebase/firestore";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import { onSnapshot, doc } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
-import * as Application from "expo-application";
-import * as Network from 'expo-network';
 import { useNavigation } from "@react-navigation/native";
+import MaintenanceModal from "../../components/MaintenanceModal";
+import UpdateModal from "../../components/UpdateModal";
 
 const LoginScreen = () => {
     const router = useRouter();
     const navigation = useNavigation();
     const translateY = useRef(new Animated.Value(-1000)).current;
     const [maintenanceMode, setMaintenanceMode] = useState(false);
+    const [updateData, setUpdateData] = useState({
+        visible: false,
+        latest_version: "",
+        update_required: false,
+        update_url_apps: "",
+        update_url_plays: "",
+    });
     const [isConnected, setIsConnected] = useState(true);
-    const [connectionError, setConnectionError] = useState(false);
-    const unsubRef = useRef(null); // Firestore aboneliği referansı
 
+    // Animasyon için useEffect
     useEffect(() => {
-        // Gesture'ı devre dışı bırak
         navigation.setOptions({
             gestureEnabled: false,
         });
@@ -40,75 +44,55 @@ const LoginScreen = () => {
             duration: 500,
             useNativeDriver: true,
         }).start();
+    }, []);
 
-        const checkConnection = async () => {
-            try {
-                const networkState = await Network.getNetworkStateAsync();
-                setIsConnected(networkState.isConnected && networkState.isInternetReachable);
-
-                if (networkState.isConnected && networkState.isInternetReachable) {
-                    await enableNetwork(db);
-                    setConnectionError(false);
-                } else {
-                    setConnectionError(true);
-                }
-            } catch (error) {
-                console.error("Network check error:", error);
-                setConnectionError(true);
+    // Bakım modu kontrolü için useEffect
+    useEffect(() => {
+        const docRef = doc(db, "appSettings", "status");
+        
+        // Firestore'dan gerçek zamanlı dinleme başlat
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                console.log("Bakım modu değişikliği algılandı:", docSnap.data());
+                setMaintenanceMode(docSnap.data().maintenanceMode === true);
             }
-        };
+        }, (error) => {
+            console.error("Maintenance mode listener error:", error);
+        });
 
-        checkConnection();
-        const connectionTimer = setInterval(checkConnection, 10000);
+        // Cleanup: listener'ı kapat
+        return () => unsubscribe();
+    }, []);
 
-        const testFirestore = async () => {
-            try {
-                const snapshot = await getDocs(collection(db, "admin"));
-                snapshot.forEach((doc) => {
-                    console.log("Firestore test verisi:", doc.id, doc.data());
+    // Yazılım güncelleme kontrolü
+    useEffect(() => {
+        const docRef = doc(db, "appSettings", "globalSettings");
+
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setUpdateData({
+                    visible: data.maintenance_mode === true,
+                    latest_version: data.latest_version || "",
+                    update_required: data.update_required === true,
+                    update_url_apps: data.update_url_apps || "",
+                    update_url_plays: data.update_url_plays || "",
                 });
-            } catch (error) {
-                console.error("Firestore test hatası:", error);
             }
-        };
+        }, (error) => {
+            console.error("UpdateModal listener error:", error);
+        });
 
-        //testFirestore();
+        return () => unsubscribe();
+    }, []);
 
-        try {
-            if (!unsubRef.current) {
-                /*const unsub = onSnapshot(
-                    doc(db, "appSettings", "status"),
-                    (snapshot) => {
-                        const data = snapshot.data();
-                        setConnectionError(false);
+    // Bağlantı kontrolü için useEffect
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
 
-                        setMaintenanceMode(data?.maintenanceMode === true);
-
-                        const currentVersion = Application.nativeApplicationVersion || "0.0.0";
-                        const latestVersion = data?.latestVersion || "0.0.0";
-                        if (compareVersions(latestVersion, currentVersion) > 0) {
-                            console.log("Güncelleme mevcut");
-                        }
-                    },
-                    (error) => {
-                        console.error("Firestore error:", error);
-                        setConnectionError(true);
-                    }
-                );
-                unsubRef.current = unsub;*/
-            }
-        } catch (error) {
-            console.error("Firestore subscription error:", error);
-            setConnectionError(true);
-        }
-
-        return () => {
-            clearInterval(connectionTimer);
-            if (unsubRef.current) {
-                unsubRef.current();
-                unsubRef.current = null;
-            }
-        };
+        return () => unsubscribe();
     }, []);
 
     const compareVersions = (v1, v2) => {
@@ -125,52 +109,37 @@ const LoginScreen = () => {
         router.push("../../../src/screens/admin/adminlogin");
     };
 
-    const retryConnection = async () => {
+    const checkConnection = async () => {
         try {
-            setConnectionError(false);
-            const networkState = await Network.getNetworkStateAsync();
-
-            if (networkState.isConnected && networkState.isInternetReachable) {
-                await enableNetwork(db);
-                Alert.alert("Bağlantı", "Sunucuyla bağlantı yeniden kurulmaya çalışılıyor.");
-            } else {
-                setConnectionError(true);
-                Alert.alert("Bağlantı Hatası", "İnternet bağlantınızı kontrol edip tekrar deneyiniz.");
-            }
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
         } catch (error) {
-            console.error("Retry connection error:", error);
-            setConnectionError(true);
+            console.error("Connection check error:", error);
+            setIsConnected(false);
         }
+    };
+
+    const handleExitApp = () => {
+        // Uygulamayı direkt kapat
+        BackHandler.exitApp();
     };
 
     return (
         <>
             <StatusBar hidden={true} />
 
-            <Modal transparent visible={maintenanceMode} animationType="fade">
-                <View style={styles.overlay}>
-                    <View style={styles.modalBox}>
-                        <Text style={styles.modalTitle}>Bakım Modu</Text>
-                        <Text style={styles.modalText}>
-                            Uygulama şu anda bakımda. Lütfen daha sonra tekrar deneyiniz.
-                        </Text>
-                    </View>
-                </View>
-            </Modal>
+            <MaintenanceModal visible={maintenanceMode} onExit={handleExitApp} />
 
-            <Modal transparent visible={connectionError} animationType="fade">
-                <View style={styles.overlay}>
-                    <View style={styles.modalBox}>
-                        <Text style={styles.modalTitle}>Bağlantı Hatası</Text>
-                        <Text style={styles.modalText}>
-                            Firebase Firestore sunucusuna bağlanılamıyor. İnternet bağlantınızı kontrol ediniz.
-                        </Text>
-                        <TouchableOpacity style={styles.retryButton} onPress={retryConnection}>
-                            <Text style={styles.retryButtonText}>Tekrar Dene</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
+            <UpdateModal
+                visible={updateData.visible}
+                latest_version={updateData.latest_version}
+                update_required={updateData.update_required}
+                update_url_apps={updateData.update_url_apps}
+                update_url_plays={updateData.update_url_plays}
+                onLater={() => setUpdateData(prev => ({ ...prev, visible: false }))}
+            />
+            
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
 
             <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
                 <LinearGradient

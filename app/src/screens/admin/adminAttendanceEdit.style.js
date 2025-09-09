@@ -37,7 +37,7 @@ export default StyleSheet.create({
         flexGrow: 1,
         marginHorizontal: screenWidth * 0.05,
         marginBottom: screenHeight * 0.025,
-        paddingTop: screenHeight * 0.025,
+        paddingTop: screenHeight * 0.060,
     },
     eventCard: {
         backgroundColor: "#FFF",
@@ -57,10 +57,6 @@ export default StyleSheet.create({
         color: "#333",
         marginBottom: screenHeight * 0.012,
     },
-    eventDate: {
-        fontSize: Math.min(screenWidth * 0.04, 16),
-        color: "#666",
-    },
     loadingContainer: {
         flex: 1,
         justifyContent: "center",
@@ -72,6 +68,31 @@ export default StyleSheet.create({
         fontWeight: "bold",
         color: "#999",
         marginTop: screenHeight * 0.02,
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    loadingContainer: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
     },
 
     buttonContainer: {

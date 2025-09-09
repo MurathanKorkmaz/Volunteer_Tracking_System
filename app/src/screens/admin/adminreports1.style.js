@@ -88,10 +88,6 @@ export default StyleSheet.create({
         color: "#FFF",
         fontWeight: "bold",
     },
-    datePickerContainer: {
-        alignItems: "center",
-        marginVertical: screenHeight * 0.012,
-    },
     datePickerButton: {
         width: "88%",
         backgroundColor: "#FFD700",

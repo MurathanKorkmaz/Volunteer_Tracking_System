@@ -35,7 +35,7 @@ export default StyleSheet.create({
     },
     searchContainer: {
         paddingHorizontal: screenWidth * 0.05,
-        marginBottom: screenHeight * 0.006,
+        marginBottom: screenHeight * 0.012,
         marginTop: screenHeight * 0.025,
     },
     searchInput: {
@@ -52,17 +52,18 @@ export default StyleSheet.create({
         shadowRadius: 4,
     },
     scrollableList: {
-        flex: 1, // height yerine flex kullan
+        height: screenHeight * 0.65,
+        width: "90%",
         marginHorizontal: "5%",
         marginBottom: screenHeight * 0.025,
         paddingVertical: screenHeight * 0.012,
         borderRadius: 10,
+        borderWidth: 0,
     },
     announcementCard: {
         backgroundColor: "#FFF",
         padding: screenWidth * 0.04,
         borderRadius: 10,
-        marginTop: screenHeight * 0.018,
         marginBottom: screenHeight * 0.018,
         elevation: 3,
         shadowColor: "#000",
@@ -86,10 +87,6 @@ export default StyleSheet.create({
         color: "#666",
         marginTop: screenHeight * 0.006,
     },
-    announcementActions: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
     announcementDescription: {
         fontSize: Math.min(screenWidth * 0.035, 14),
         color: "#555",
@@ -100,13 +97,6 @@ export default StyleSheet.create({
         fontWeight: "bold",
         color: "#007BFF",
         marginTop: screenHeight * 0.006,
-    },
-    editButton: {
-        backgroundColor: "#FFD700",
-        paddingVertical: screenHeight * 0.006,
-        paddingHorizontal: screenWidth * 0.025,
-        borderRadius: 5,
-        marginRight: screenWidth * 0.025,
     },
     deleteButton: {
         backgroundColor: "#FF5733",
@@ -135,13 +125,6 @@ export default StyleSheet.create({
         fontSize: Math.min(screenWidth * 0.04, 16),
         color: "#FFF",
         fontWeight: "bold",
-    },
-    loadingText: {
-        fontSize: Math.min(screenWidth * 0.045, 18),
-        fontWeight: "bold",
-        textAlign: "center",
-        marginVertical: screenHeight * 0.025,
-        color: "#FF6347",
     },
     emptyText: {
         fontSize: Math.min(screenWidth * 0.04, 16),
@@ -181,32 +164,40 @@ export default StyleSheet.create({
     tabButtonTextActive: {
         color: "#FFF",
     },
-    inactiveCard: {
-    backgroundColor: "#E0E0E0", // gri ton
-    opacity: 0.6,
-    },
     infoText: {
-    fontSize: 14,
-    color: "#666",
-    fontStyle: "italic",
-    marginTop: 6,
+        fontSize: 14,
+        color: "#666",
+        textAlign: "center",
+        marginTop: 6,
+        fontStyle: "italic",
     },
     loadingOverlay: {
         position: 'absolute',
-        top: 0,
+        top: screenHeight * 0.2,
         left: 0,
         right: 0,
         bottom: 0,
         backgroundColor: 'transparent',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         alignItems: 'center',
         zIndex: 1000,
     },
     loadingContainer: {
         backgroundColor: 'white',
-        padding: 20,
-        borderRadius: 10,
+        padding: 30,
+        borderRadius: 15,
         alignItems: 'center',
+        minWidth: 200,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        borderWidth: 2,
+        borderColor: '#3B82F6',
     },
     loadingText: {
         color: '#3B82F6',

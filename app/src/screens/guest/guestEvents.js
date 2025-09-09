@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     SafeAreaView,
     View,
@@ -6,29 +6,44 @@ import {
     TouchableOpacity,
     TextInput,
     ScrollView,
-    Alert,
-    Modal,
     KeyboardAvoidingView,
     Platform,
     Animated,
     Dimensions,
     ActivityIndicator,
     RefreshControl,
+    BackHandler,
+    LogBox,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import NetInfo from "@react-native-community/netinfo";
+import NoInternet from "../../components/NoInternet";
+import DatabaseError from "../../components/DatabaseError";
+import MessageModal from "../../components/MessageModal";
 import styles from "./guestEvents.style";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { collection, getDocs, doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, updateDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../../../../configs/FirebaseConfig";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useNavigation } from "@react-navigation/native";
+import MaintenanceModal from "../../components/MaintenanceModal";
+import BlockModal from "../../components/BlockModal";
+
+// Firebase hata mesajlarını gizle
+LogBox.ignoreAllLogs();
 
 export default function GuestEvents() {
     const router = useRouter();
     const navigation = useNavigation();
-    const { userId, userName } = useLocalSearchParams();
+    const { userId, userName, userAuthority } = useLocalSearchParams();
+    const userCollection = userAuthority === "3" ? "personal" : "guests";
     const screenWidth = Dimensions.get("window").width;
     const translateX = useRef(new Animated.Value(screenWidth)).current;
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
+    const [isBlocked, setIsBlocked] = useState(false);
+    const [isConnected, setIsConnected] = useState(true);
+    const [hasDbError, setHasDbError] = useState(false);
+
     const [searchText, setSearchText] = useState("");
     const [events, setEvents] = useState([]);
     const [filteredEvents, setFilteredEvents] = useState([]);
@@ -41,6 +56,60 @@ export default function GuestEvents() {
     const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+
+    // MessageModal state + tek noktadan çağırma helper'ı
+    const [msgVisible, setMsgVisible] = useState(false);
+    const [msgProps, setMsgProps] = useState({
+        title: "",
+        message: "",
+        type: "info",          // 'info' | 'success' | 'error' | 'warning'
+        primaryText: "Tamam",
+        secondaryText: undefined,
+        onPrimary: () => setMsgVisible(false),
+        onSecondary: undefined,
+        dismissable: true,
+    });
+
+    const showMessage = ({
+        title = "",
+        message = "",
+        type = "info",
+        primaryText = "Tamam",
+        onPrimary = () => setMsgVisible(false),
+        secondaryText,
+        onSecondary,
+        dismissable = true,
+    }) => {
+        setMsgProps({
+            title,
+            message,
+            type,
+            primaryText,
+            secondaryText,
+            onPrimary,
+            onSecondary,
+            dismissable,
+        });
+        setMsgVisible(true);
+    };
+
+    useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const checkConnection = async () => {
+        try {
+            const state = await NetInfo.fetch();
+            setIsConnected(state.isConnected && state.isInternetReachable);
+        } catch (error) {
+            console.error("Connection check error:", error);
+            setIsConnected(false);
+        }
+    };
 
     const showDatePicker = () => {
         setDatePickerVisibility(true);
@@ -56,8 +125,67 @@ export default function GuestEvents() {
         fetchEvents(); // Yeni tarih seçildiğinde etkinlikleri güncelle
     };
 
+    // Bakım modu kontrolü için useEffect
+    useEffect(() => {
+        const docRef = doc(db, "appSettings", "status");
+        
+        // Firestore'dan gerçek zamanlı dinleme başlat
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                console.log("Bakım modu değişikliği algılandı:", docSnap.data());
+                setMaintenanceMode(docSnap.data().maintenanceMode === true);
+            }
+        }, (error) => {
+            console.error("Maintenance mode listener error:", error);
+        });
+
+        // Cleanup: listener'ı kapat
+        return () => unsubscribe();
+    }, []);
+
+    // maintenanceMode state'ini izle
+    useEffect(() => {
+        console.log("maintenanceMode state değişti:", maintenanceMode);
+    }, [maintenanceMode]);
+
+    // Block durumu kontrolü için useEffect
+    useEffect(() => {
+        if (!userId) return;
+
+        const userDocRef = doc(db, userCollection, userId);
+        
+        const unsubscribeBlock = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const userData = docSnap.data();
+                const isUserBlocked = userData.block === "1";
+                setIsBlocked(isUserBlocked);
+            }
+        }, (error) => {
+            console.error("Block status listener error:", error);
+        });
+
+        return () => unsubscribeBlock();
+    }, [userId, userCollection]);
+
+    const handleExitApp = () => {
+        console.log("Çıkış yapılıyor...");
+        BackHandler.exitApp();
+    };
+
+    // Block durumunda çıkış işlemi
+    const handleBlockExit = () => {
+        // Navigation stack'i tamamen temizle ve ana sayfaya git
+        navigation.reset({
+            index: 0,
+            routes: [{ name: 'index' }], // Ana route'a dön
+        });
+    };
+
     useEffect(() => {
         const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            // Eğer kullanıcı bloklu ise navigation'ı engelle
+            if (isBlocked) return;
+            
             // Prevent default behavior
             e.preventDefault();
 
@@ -89,11 +217,12 @@ export default function GuestEvents() {
         fetchUserRegisteredEvents();
 
         return unsubscribe;
-    }, [navigation, selectedDate]);
+    }, [navigation, selectedDate, isBlocked]);
 
     const fetchEvents = async () => {
         try {
             setLoading(true);
+            setHasDbError(false);
             const selectedYear = selectedDate.getFullYear().toString();
             const selectedMonth = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
 
@@ -143,7 +272,7 @@ export default function GuestEvents() {
         } catch (error) {
             console.error("Etkinlik verileri alınırken hata oluştu:", error);
             console.error("Hata detayı:", error.message);
-            Alert.alert("Hata", "Etkinlik verileri alınırken bir hata oluştu.");
+            setHasDbError(true);
         } finally {
             setLoading(false);
         }
@@ -151,6 +280,7 @@ export default function GuestEvents() {
 
     const fetchUserRegisteredEvents = async () => {
         try {
+            setHasDbError(false);
             const selectedYear = selectedDate.getFullYear().toString();
             const selectedMonth = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
 
@@ -171,7 +301,7 @@ export default function GuestEvents() {
             setRegisteredEvents(registeredEvents);
         } catch (error) {
             console.error("Kullanıcının kayıtlı olduğu etkinlikleri alınırken hata oluştu:", error.message);
-            Alert.alert("Hata", "Kullanıcının kayıtlı olduğu etkinlikleri alınırken bir hata oluştu.");
+            setHasDbError(true);
         }
     };
 
@@ -190,8 +320,13 @@ export default function GuestEvents() {
 
     const handleApplyEvent = async (event) => {
         try {
+            setHasDbError(false);
             if (!event || !event.title) {
-                Alert.alert("Hata", "Etkinlik bilgisi eksik. Lütfen tekrar deneyin.");
+                showMessage({
+                    title: "Hata",
+                    message: "Etkinlik bilgisi eksik. Lütfen tekrar deneyin.",
+                    type: "error",
+                });
                 return;
             }
             
@@ -199,12 +334,20 @@ export default function GuestEvents() {
             
             if (!userId || !userName) {
                 console.error("Başvuru başarısız: userId veya userName eksik!");
-                Alert.alert("Hata", "Kullanıcı bilgileri eksik. Lütfen tekrar giriş yapın.");
+                showMessage({
+                    title: "Hata",
+                    message: "Kullanıcı bilgileri eksik. Lütfen tekrar giriş yapın.",
+                    type: "error",
+                });
                 return;
             }
     
             if (parseInt(event.applyCount, 10) >= parseInt(event.limit, 10)) {
-                Alert.alert("Kontenjan Doldu", "Etkinliğin kontenjan sayısı dolmuştur.");
+                showMessage({
+                    title: "Kontenjan Doldu",
+                    message: "Etkinliğin kontenjan sayısı dolmuştur.",
+                    type: "warning",
+                });
                 return;
             }
     
@@ -222,7 +365,11 @@ export default function GuestEvents() {
                 nonParticipantSnap.docs.some((doc) => doc.id === userId);
     
             if (isUserAlreadySelected) {
-                Alert.alert("Bilgilendirme", "Etkinlik için seçiminizi zaten yapmışsınız.");
+                showMessage({
+                    title: "Bilgilendirme",
+                    message: "Etkinlik için seçiminizi zaten yapmışsınız.",
+                    type: "info",
+                });
                 return;
             }
     
@@ -232,13 +379,15 @@ export default function GuestEvents() {
             await setDoc(participantRef, { 
                 Name: userName,
                 appliedAt: formattedDate,
-                State: "0"
+                State: "0",
+                authority: userAuthority,
             });
     
             await setDoc(pastParticipantRef, { 
                 Name: userName,
                 appliedAt: formattedDate,
-                State: "0"
+                State: "0",
+                authority: userAuthority,
             });
     
             const eventRef = doc(db, "events", selectedYear, selectedMonth, event.id);
@@ -262,19 +411,28 @@ export default function GuestEvents() {
                 )
             );
     
-            Alert.alert("Başarı", `${event?.title || "Etkinlik"} etkinliğine başarıyla katıldınız!`);
+            showMessage({
+                title: "Başarı",
+                message: `${event?.title || "Etkinlik"} etkinliğine başarıyla katıldınız!`,
+                type: "success",
+            });
         } catch (error) {
             console.error("Başvuru yapılırken hata oluştu:", error.message);
-            Alert.alert("Hata", "Başvuru yapılırken bir hata oluştu. Lütfen daha sonra tekrar deneyiniz.");
+            setHasDbError(true);
         }
     };
     
     const handleDeclineEvent = async (event) => {
         try {
+            setHasDbError(false);
             console.log(`Katılmama tercihi başlatıldı: Etkinlik ID: ${event.id}, Kullanıcı ID: ${userId}, Kullanıcı Adı: ${userName}`);
     
             if (!userId || !userName) {
-                Alert.alert("Hata", "Kullanıcı bilgileri eksik. Lütfen tekrar giriş yapın.");
+                showMessage({
+                    title: "Hata",
+                    message: "Kullanıcı bilgileri eksik. Lütfen tekrar giriş yapın.",
+                    type: "error",
+                });
                 return;
             }
     
@@ -289,7 +447,11 @@ export default function GuestEvents() {
                 nonParticipantSnap.docs.some((doc) => doc.id === userId);
     
             if (isUserAlreadySelected) {
-                Alert.alert("Bilgilendirme", "Etkinlik için seçiminizi zaten yapmışsınız.");
+                showMessage({
+                    title: "Bilgilendirme",
+                    message: "Etkinlik için seçiminizi zaten yapmışsınız.",
+                    type: "info",
+                });
                 return;
             }
     
@@ -302,13 +464,15 @@ export default function GuestEvents() {
             await setDoc(nonParticipantRef, {
                 Name: userName,
                 appliedAt: formattedDate,
-                State: "0"
+                State: "0",
+                authority: userAuthority,
             });
     
             await setDoc(pastNonParticipantRef, {
                 Name: userName,
                 appliedAt: formattedDate,
-                State: "0"
+                State: "0",
+                authority: userAuthority,
             });
     
             const eventRef = doc(db, "events", selectedYear, selectedMonth, event.id);
@@ -351,14 +515,24 @@ export default function GuestEvents() {
                 console.warn("Hata: Etkinlik bulunamadı (pastEvents).");
             }
     
-            Alert.alert("Bilgilendirme", "Etkinliğe katılmama tercihiniz kaydedildi.");
+            showMessage({
+                title: "Bilgilendirme",
+                message: "Etkinliğe katılmama tercihiniz kaydedildi.",
+                type: "info",
+            });
         } catch (error) {
             console.error("Katılmama tercihi yapılırken hata oluştu:", error.message);
-            Alert.alert("Hata", "Katılmama tercihiniz kaydedilirken bir hata oluştu. Lütfen daha sonra tekrar deneyiniz.");
+            setHasDbError(true);
         }
     };
     
     const handleBack = () => {
+        // Eğer kullanıcı bloklu ise geri dönüşü engelle
+        if (isBlocked) {
+            handleBlockExit();
+            return;
+        }
+        
         Animated.timing(translateX, {
             toValue: screenWidth,
             duration: 100,
@@ -402,6 +576,28 @@ export default function GuestEvents() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {!isConnected && <NoInternet onRetry={checkConnection} />}
+            {hasDbError && <DatabaseError onRetry={() => {
+                setHasDbError(false);
+                fetchEvents();
+                fetchUserRegisteredEvents();
+            }} />}
+            <MaintenanceModal visible={maintenanceMode} onExit={handleExitApp} />
+            <BlockModal visible={isBlocked} onClose={handleBlockExit} />
+
+            <MessageModal
+                visible={msgVisible}
+                title={msgProps.title}
+                message={msgProps.message}
+                type={msgProps.type}
+                primaryText={msgProps.primaryText}
+                secondaryText={msgProps.secondaryText}
+                onPrimary={msgProps.onPrimary}
+                onSecondary={msgProps.onSecondary}
+                onRequestClose={() => setMsgVisible(false)}
+                dismissable={msgProps.dismissable}
+            />
+
             <LinearGradient colors={["#FFFACD", "#FFD701"]} style={styles.background}>
                 <Animated.View style={{ flex: 1, transform: [{ translateX }] }}>
                     <KeyboardAvoidingView 
